@@ -1,0 +1,51 @@
+{
+  "name": "saha",
+  "private": true,
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^8.0.1",
+    "@expo/metro-config": "^0.18.11",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "ajv": "^8.17.1",
+    "eslint": "^8.57.0",
+    "expo": "~51.0.39",
+    "fast-glob": "^3.3.3",
+    "js-tokens": "^10.0.0",
+    "jscodeshift": "^17.4.0",
+    "metro": "^0.80.12",
+    "metro-babel-transformer": "^0.80.12",
+    "metro-cache": "^0.80.12",
+    "metro-cache-key": "^0.80.12",
+    "metro-config": "^0.80.12",
+    "metro-minify-terser": "^0.80.12",
+    "metro-resolver": "^0.80.12",
+    "metro-source-map": "^0.80.12",
+    "metro-symbolicate": "^0.80.12",
+    "metro-transform-plugins": "^0.80.12",
+    "metro-transform-worker": "^0.80.12",
+    "prettier": "^3.3.0",
+    "react": "18.2.0",
+    "react-native": "0.74.5",
+    "recast": "^0.23.12",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@expo/config-plugins": "~8.0.0"
+  }
+}

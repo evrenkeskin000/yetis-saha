@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Saha",
+    "slug": "saha",
+    "scheme": "saha",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "jsEngine": "jsc",
+    "android": {
+      "package": "com.saha.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "@maplibre/maplibre-react-native/app.plugin.js",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Vardiya süresince rota kaydı yapabilmek için arka planda konum iznine ihtiyaç vardır.",
+          "locationAlwaysPermission": "Vardiya süresince rota kaydı yapabilmek için arka planda konum iznine ihtiyaç vardır.",
+          "locationWhenInUsePermission": "Saha uygulamasının yakınlardaki esnafları gösterebilmesi için konum iznine ihtiyacı vardır.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ziyaret fotoğrafı çekebilmek için kamera izni gereklidir."
+        }
+      ]
+    ]
+  }
+}
