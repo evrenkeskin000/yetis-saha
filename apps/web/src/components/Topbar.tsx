@@ -33,7 +33,7 @@ export function Topbar({ profile, onSignOut }: TopbarProps) {
             <div className="text-sm font-semibold text-slate-800">
               {profile?.full_name || 'Kullanıcı'}
             </div>
-            <div className="text-xs text-blue-600 font-medium">{roleLabel}</div>
+            <div className="text-xs text-teal-600 font-medium">{roleLabel}</div>
           </div>
         </div>
 

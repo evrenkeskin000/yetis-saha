@@ -1,9 +1,9 @@
 export const KVKK_CONSENT_VERSION = 'v1.0';
 
-export const KVKK_AYDINLATMA_METNI = `SAHA EKİP TAKİP SİSTEMİ KVKK AYDINLATMA METNİ
+export const KVKK_AYDINLATMA_METNI = `YETİŞ+ SAHA EKİP TAKİP SİSTEMİ KVKK AYDINLATMA METNİ
 
 1. Veri Sorumlusunun Kimliği
-6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, Saha Ekip Takip Sistemi ("Şirket") olarak, saha temsilcilerimizin kişisel verilerini aşağıda açıklanan kapsamda işlemekteyiz.
+6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, Hızır Global A.Ş. ("Şirket") olarak, Yetiş+ Saha Ekip Takip Sistemi kapsamında saha temsilcilerimizin kişisel verilerini aşağıda açıklanan kapsamda işlemekteyiz.
 
 2. İşlenen Kişisel Verileriniz
 Mobil uygulamamızı kullanmanız esnasında aşağıdaki kişisel verileriniz işlenmektedir:

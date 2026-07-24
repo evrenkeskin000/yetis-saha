@@ -1,14 +1,24 @@
 {
   "expo": {
-    "name": "Saha",
+    "name": "Yetiş+ Saha",
     "slug": "saha",
     "scheme": "saha",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "jsEngine": "jsc",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "android": {
       "package": "com.saha.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -26,7 +36,7 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Vardiya süresince rota kaydı yapabilmek için arka planda konum iznine ihtiyaç vardır.",
           "locationAlwaysPermission": "Vardiya süresince rota kaydı yapabilmek için arka planda konum iznine ihtiyaç vardır.",
-          "locationWhenInUsePermission": "Saha uygulamasının yakınlardaki esnafları gösterebilmesi için konum iznine ihtiyacı vardır.",
+          "locationWhenInUsePermission": "Yetiş+ Saha uygulamasının yakınlardaki esnafları gösterebilmesi için konum iznine ihtiyacı vardır.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

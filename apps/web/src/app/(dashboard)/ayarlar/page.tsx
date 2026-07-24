@@ -13,8 +13,8 @@ export default function AyarlarPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-slate-900">Sistem Ayarları</h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold uppercase">
-              <Shield className="w-3 h-3 text-blue-700" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold uppercase">
+              <Shield className="w-3 h-3 text-teal-700" />
               Admin Yalnızca
             </span>
           </div>
@@ -28,13 +28,13 @@ export default function AyarlarPage() {
           {/* Card 1: Kategori Yönetimi */}
           <Link
             href="/ayarlar/kategoriler"
-            className="group bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-blue-200 transition-all space-y-4 flex flex-col justify-between"
+            className="group bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-teal-200 transition-all space-y-4 flex flex-col justify-between"
           >
             <div className="space-y-3">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 text-teal-600 group-hover:scale-110 transition-transform">
                 <Folders className="w-6 h-6" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+              <h2 className="text-lg font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
                 Kategori Yönetimi
               </h2>
               <p className="text-xs text-slate-500 leading-relaxed">
@@ -42,7 +42,7 @@ export default function AyarlarPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 group-hover:translate-x-1 transition-transform pt-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-teal-600 group-hover:translate-x-1 transition-transform pt-2">
               <span>Kategorilere Git</span>
               <ArrowRight className="w-4 h-4" />
             </div>
@@ -51,7 +51,7 @@ export default function AyarlarPage() {
           {/* Card 2: Kullanıcı Yönetimi */}
           <Link
             href="/ayarlar/kullanicilar"
-            className="group bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-blue-200 transition-all space-y-4 flex flex-col justify-between"
+            className="group bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-teal-200 transition-all space-y-4 flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 group-hover:scale-110 transition-transform">

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogIn, Lock, Mail } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { createClient } from '../../../lib/supabase/client';
 
 export default function LoginPage() {
@@ -83,11 +83,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-12">
       <div className="max-w-md w-full space-y-8 bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-600/20 text-blue-400 mb-2">
-            <LogIn className="w-7 h-7" />
-          </div>
+          <img
+            src="/brand/yetisplus-logo.png"
+            alt="Yetiş+ Saha"
+            className="mx-auto h-16 w-auto mb-2"
+          />
           <h2 className="text-2xl font-bold text-slate-100">
-            Saha Yönetim Paneli
+            Yetiş+ Saha Yönetim Paneli
           </h2>
           <p className="text-sm text-slate-400">
             Yönetici hesabınızla giriş yapın
@@ -120,8 +122,8 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  placeholder="ornek@saha.com"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                  placeholder="ornek@yetisplus.com"
                 />
               </div>
             </div>
@@ -144,7 +146,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -154,7 +156,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-semibold text-slate-900 bg-teal-500 hover:bg-teal-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors disabled:opacity-50"
           >
             {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>

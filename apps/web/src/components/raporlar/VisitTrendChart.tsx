@@ -33,7 +33,7 @@ export function VisitTrendChart({ data, range }: VisitTrendChartProps) {
     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-blue-600" />
+          <BarChart3 className="w-4 h-4 text-teal-600" />
           <span>Ziyaret Trendi</span>
         </h3>
         <span className="text-[11px] text-slate-500 font-medium">
@@ -71,7 +71,7 @@ export function VisitTrendChart({ data, range }: VisitTrendChartProps) {
                 formatter={(value: any) => [`${value} Ziyaret`, 'Ziyaret']}
                 labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
               />
-              <Bar dataKey="ziyaret" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={48} />
+              <Bar dataKey="ziyaret" fill="#14B8A6" radius={[6, 6, 0, 0]} maxBarSize={48} />
             </BarChart>
           </ResponsiveContainer>
         )}

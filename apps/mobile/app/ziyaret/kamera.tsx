@@ -177,7 +177,7 @@ export default function KameraScreen() {
             {/* Watermark Overlay Strip */}
             <View style={styles.watermarkStrip}>
               <Text style={styles.watermarkText}>
-                SAHA ZİYARETİ | {watermarkInfo?.dateStr}
+                YETİŞ+ ZİYARETİ | {watermarkInfo?.dateStr}
               </Text>
               <Text style={styles.watermarkText}>
                 GPS: {watermarkInfo?.geoStr}

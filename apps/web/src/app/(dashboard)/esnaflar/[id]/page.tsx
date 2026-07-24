@@ -199,7 +199,7 @@ function EsnafDetayContent({ customerId }: { customerId: string }) {
 
         <Link
           href={`/esnaflar/${customer.id}/duzenle`}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-blue-600 text-sm font-semibold shadow-xs transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-teal-600 text-sm font-semibold shadow-xs transition-colors"
         >
           <Edit className="w-4 h-4" />
           <span>Düzenle</span>
@@ -253,7 +253,7 @@ function EsnafDetayContent({ customerId }: { customerId: string }) {
               <div>
                 <p className="text-xs">{customer.address || 'Açık adres girilmemiş'}</p>
                 {customer.location && (
-                  <p className="font-mono text-[11px] text-blue-600 font-medium mt-1">
+                  <p className="font-mono text-[11px] text-teal-600 font-medium mt-1">
                     {customer.location.latitude.toFixed(5)},{' '}
                     {customer.location.longitude.toFixed(5)}
                   </p>

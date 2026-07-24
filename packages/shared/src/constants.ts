@@ -1,6 +1,17 @@
 import type { UserRole, VisitOutcome } from './types';
 
-export const APP_NAME = 'Saha';
+export const APP_NAME = 'Yetiş+ Saha';
+export const APP_SHORT_NAME = 'Yetiş+';
+export const LEGAL_ENTITY = 'Hızır Global A.Ş.';
+
+export const BRAND_COLORS = {
+  bg: '#0a0a0a',
+  bgElevated: '#111827',
+  primary: '#2DD4BF',
+  primaryStrong: '#14B8A6',
+  accent: '#FACC15',
+  accentStrong: '#EAB308',
+} as const;
 
 export const ROLES = ['admin', 'manager', 'field_rep'] as const;
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -31,7 +42,7 @@ export const OUTCOME_LABELS: Record<VisitOutcome, string> = {
 
 export const OUTCOME_COLORS: Record<VisitOutcome, string> = {
   agreed: '#16a34a',
-  quote_given: '#2563eb',
+  quote_given: '#14B8A6',
   decision_maker_absent: '#d97706',
   not_interested: '#dc2626',
   follow_up_needed: '#7c3aed',

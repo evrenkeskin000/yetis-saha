@@ -36,7 +36,7 @@ export function RangeSelector({
               onClick={() => onRangeChange(opt.id)}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 isActive
-                  ? 'bg-white text-blue-600 shadow-xs'
+                  ? 'bg-white text-teal-600 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -59,7 +59,7 @@ export function RangeSelector({
           disabled={loading}
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs disabled:opacity-50 transition-colors"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-600' : 'text-slate-500'}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-teal-600' : 'text-slate-500'}`} />
           <span>{loading ? 'Yükleniyor...' : 'Yenile'}</span>
         </button>
       </div>

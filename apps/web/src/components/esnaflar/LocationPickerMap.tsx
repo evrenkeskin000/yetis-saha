@@ -80,7 +80,7 @@ export default function LocationPickerMap({
       <div className="text-xs text-slate-500 flex justify-between items-center px-1">
         <span>* Harita üzerine tıklayarak konumu belirleyin</span>
         {position ? (
-          <span className="font-mono font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+          <span className="font-mono font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
             {position[0].toFixed(5)}, {position[1].toFixed(5)}
           </span>
         ) : (

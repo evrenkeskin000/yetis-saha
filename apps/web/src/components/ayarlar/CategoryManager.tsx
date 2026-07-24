@@ -241,7 +241,7 @@ export function CategoryManager() {
       {/* Inline Create Category Form */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-blue-600" />
+          <Plus className="w-4 h-4 text-teal-600" />
           <span>Yeni Kategori Ekle</span>
         </h3>
 
@@ -258,7 +258,7 @@ export function CategoryManager() {
               value={newIcon}
               onChange={(e) => setNewIcon(e.target.value)}
               placeholder="🛒"
-              className="w-full text-center px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-blue-500"
+              className="w-full text-center px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-teal-500"
             />
           </div>
 
@@ -271,7 +271,7 @@ export function CategoryManager() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Örn. Market, Eczane, Restoran"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-blue-500"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-teal-500"
             />
           </div>
 
@@ -281,7 +281,7 @@ export function CategoryManager() {
                 type="checkbox"
                 checked={newIsActive}
                 onChange={(e) => setNewIsActive(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
               />
               <span>Aktif</span>
             </label>
@@ -290,7 +290,7 @@ export function CategoryManager() {
           <button
             type="submit"
             disabled={adding}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-xs disabled:opacity-50 transition-colors shrink-0"
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-xs disabled:opacity-50 transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>{adding ? 'Ekleniyor...' : 'Ekle'}</span>
@@ -369,7 +369,7 @@ export function CategoryManager() {
                               type="checkbox"
                               checked={editIsActive}
                               onChange={(e) => setEditIsActive(e.target.checked)}
-                              className="rounded text-blue-600"
+                              className="rounded text-teal-600"
                             />
                             <span>Aktif</span>
                           </label>
@@ -412,7 +412,7 @@ export function CategoryManager() {
                               type="button"
                               onClick={() => startEditing(cat)}
                               title="Düzenle"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-blue-600 transition-colors"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-teal-600 transition-colors"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>

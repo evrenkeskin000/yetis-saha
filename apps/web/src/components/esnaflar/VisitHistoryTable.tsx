@@ -33,7 +33,7 @@ export function VisitHistoryTable({ visits }: VisitHistoryTableProps) {
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
         <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-blue-600" />
+          <Calendar className="w-4 h-4 text-teal-600" />
           <span>Ziyaret Geçmişi ({visits.length})</span>
         </h3>
       </div>

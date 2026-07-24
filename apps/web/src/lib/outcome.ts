@@ -10,7 +10,7 @@ export const OUTCOME_LABELS: Record<string, string> = {
 
 export const OUTCOME_COLORS: Record<string, string> = {
   agreed: '#16a34a',
-  quote_given: '#2563eb',
+  quote_given: '#14B8A6',
   decision_maker_absent: '#d97706',
   not_interested: '#dc2626',
   follow_up_needed: '#7c3aed',
