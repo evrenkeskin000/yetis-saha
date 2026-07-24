@@ -28,7 +28,7 @@ export function SummaryCards({ visits }: SummaryCardsProps) {
           </div>
           <div className="text-3xl font-black text-slate-900">{totalVisits}</div>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
           <CalendarCheck className="w-6 h-6" />
         </div>
       </div>

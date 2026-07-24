@@ -216,7 +216,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
                 className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden transition-colors ${
                   fieldErrors.business_name
                     ? 'border-red-300 bg-red-50/50 focus:border-red-500'
-                    : 'border-slate-300 focus:border-blue-500'
+                    : 'border-slate-300 focus:border-teal-500'
                 }`}
               />
             </div>
@@ -239,7 +239,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
                 setFormState({ ...formState, owner_name: e.target.value })
               }
               placeholder="Örn. Ahmet Yılmaz"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-teal-500 transition-colors"
             />
             {fieldErrors.owner_name && (
               <p className="text-xs text-red-600 font-medium">
@@ -263,7 +263,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden transition-colors ${
                 fieldErrors.phone
                   ? 'border-red-300 bg-red-50/50 focus:border-red-500'
-                  : 'border-slate-300 focus:border-blue-500'
+                  : 'border-slate-300 focus:border-teal-500'
               }`}
             />
             {fieldErrors.phone && (
@@ -287,7 +287,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden transition-colors bg-white ${
                 fieldErrors.category_id
                   ? 'border-red-300 bg-red-50/50 focus:border-red-500'
-                  : 'border-slate-300 focus:border-blue-500'
+                  : 'border-slate-300 focus:border-teal-500'
               }`}
             >
               <option value="">Kategori Seçin</option>
@@ -325,7 +325,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden transition-colors ${
                 fieldErrors.geofence_radius_m
                   ? 'border-red-300 bg-red-50/50 focus:border-red-500'
-                  : 'border-slate-300 focus:border-blue-500'
+                  : 'border-slate-300 focus:border-teal-500'
               }`}
             />
             {fieldErrors.geofence_radius_m ? (
@@ -351,7 +351,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
                 setFormState({ ...formState, address: e.target.value })
               }
               placeholder="Mahalle, cadde, sokak, no..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-hidden focus:border-teal-500 transition-colors"
             />
           </div>
 
@@ -399,7 +399,7 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
           <button
             type="submit"
             disabled={submitting}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-xs disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-xs disabled:opacity-50 transition-colors"
           >
             <Save className="w-4 h-4" />
             <span>{submitting ? 'Kaydediliyor...' : 'Kaydet'}</span>

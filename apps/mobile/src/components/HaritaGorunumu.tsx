@@ -1,7 +1,7 @@
 import {
   Camera,
-  Map,
-  Marker,
+  MapView,
+  MarkerView,
   UserLocation,
 } from '@maplibre/maplibre-react-native';
 import React, { useState } from 'react';
@@ -58,7 +58,7 @@ export function HaritaGorunumu({
 
   const handleLongPress = (event: any) => {
     if (onLongPress) {
-      const coords = event?.nativeEvent?.geometry?.coordinates;
+      const coords = event?.geometry?.coordinates ?? event?.nativeEvent?.geometry?.coordinates;
       if (Array.isArray(coords) && coords.length >= 2) {
         onLongPress([coords[0], coords[1]]);
       }
@@ -71,18 +71,18 @@ export function HaritaGorunumu({
 
   return (
     <View style={[styles.container, style]}>
-      <Map
+      <MapView
         style={styles.map}
         mapStyle={OSM_RASTER_STYLE as any}
-        logo={false}
-        attribution={false}
+        logoEnabled={false}
+        attributionEnabled={false}
         onLongPress={handleLongPress}
         onPress={() => setActivePin(null)}
       >
         <Camera
-          initialViewState={{
-            center: cameraCenter,
-            zoom: cameraZoom,
+          defaultSettings={{
+            centerCoordinate: cameraCenter,
+            zoomLevel: cameraZoom,
           }}
         />
 
@@ -95,27 +95,30 @@ export function HaritaGorunumu({
             pin.id === (selectedPinId || activePin?.id);
 
           return (
-            <Marker
+            <MarkerView
               key={pin.id}
-              id={pin.id}
-              lngLat={pin.coordinate}
-              onPress={() => handlePointPress(pin)}
+              coordinate={pin.coordinate}
+              isSelected={isSelected}
             >
-              <View
-                style={[
-                  styles.markerContainer,
-                  { backgroundColor: pinColor },
-                  isSelected && styles.markerSelected,
-                ]}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => handlePointPress(pin)}
               >
-                <View style={styles.markerInnerDot} />
-              </View>
-            </Marker>
+                <View
+                  style={[
+                    styles.markerContainer,
+                    { backgroundColor: pinColor },
+                    isSelected && styles.markerSelected,
+                  ]}
+                >
+                  <View style={styles.markerInnerDot} />
+                </View>
+              </TouchableOpacity>
+            </MarkerView>
           );
         })}
-      </Map>
+      </MapView>
 
-      {/* Map Callout Card */}
       {activePin && (
         <View style={styles.calloutCard}>
           <View style={styles.calloutHeader}>
@@ -151,7 +154,6 @@ export function HaritaGorunumu({
         </View>
       )}
 
-      {/* OpenStreetMap Attribution */}
       <View style={styles.attributionBadge}>
         <Text style={styles.attributionText}>{MAP_ATTRIBUTION}</Text>
       </View>

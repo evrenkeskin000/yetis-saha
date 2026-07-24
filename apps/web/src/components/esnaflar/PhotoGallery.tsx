@@ -88,7 +88,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
       <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-        <ImageIcon className="w-4 h-4 text-blue-600" />
+        <ImageIcon className="w-4 h-4 text-teal-600" />
         <span>Fotoğraf Galerisi ({photos.length})</span>
       </h3>
 

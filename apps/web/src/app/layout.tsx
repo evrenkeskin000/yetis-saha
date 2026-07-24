@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Saha Yönetim Paneli',
-  description: 'Saha Ekip Takip ve Pazarlama Yönetim Sistemi Admin Paneli',
+  title: 'Yetiş+ Saha Yönetim Paneli',
+  description: 'Yetiş+ Saha Ekip Takip ve Pazarlama Yönetim Sistemi Admin Paneli',
 };
 
 export default function RootLayout({

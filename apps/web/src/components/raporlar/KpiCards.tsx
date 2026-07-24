@@ -16,8 +16,8 @@ export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
       value: kpis.avgDailyVisitsPerRepStr,
       subtitle: `Aralıkta Toplam ${kpis.totalVisits} Ziyaret`,
       icon: CalendarCheck,
-      colorBg: 'bg-blue-50',
-      colorText: 'text-blue-600',
+      colorBg: 'bg-teal-50',
+      colorText: 'text-teal-600',
     },
     {
       title: 'Müşteri Kapsama Oranı',

@@ -41,7 +41,7 @@ export function RepPerformanceTable({ data }: RepPerformanceTableProps) {
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
         <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-          <Users className="w-4 h-4 text-blue-600" />
+          <Users className="w-4 h-4 text-teal-600" />
           <span>Temsilci Performans Raporu ({data.length})</span>
         </h3>
         <CsvButton onExport={handleCsvExport} label="Performansı İndir" />
@@ -86,7 +86,7 @@ export function RepPerformanceTable({ data }: RepPerformanceTableProps) {
                     {row.agreedVisits}
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
                       %{Math.round(row.conversionRatePct)}
                     </span>
                   </td>

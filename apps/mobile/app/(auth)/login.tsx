@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../../src/lib/auth';
+import { colors } from '../../src/theme/colors';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -44,7 +46,11 @@ export default function LoginScreen() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.logoText}>SAHA</Text>
+            <Image
+              source={require('../../assets/yetisplus-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.title}>Saha Temsilcisi Girişi</Text>
             <Text style={styles.subtitle}>
               Hesabınıza erişmek için bilgilerinizi girin
@@ -125,11 +131,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#38bdf8',
-    letterSpacing: 2,
+  logo: {
+    width: 200,
+    height: 132,
     marginBottom: 8,
   },
   title: {
@@ -186,21 +190,21 @@ const styles = StyleSheet.create({
     color: '#f8fafc',
   },
   button: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: colors.primaryDisabled,
     opacity: 0.7,
   },
   buttonPressed: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: colors.primaryPressed,
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#052e2b',
     fontSize: 16,
     fontWeight: '700',
   },

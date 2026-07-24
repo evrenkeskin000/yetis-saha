@@ -60,9 +60,11 @@ export function Sidebar({ profile }: SidebarProps) {
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
-        <span className="text-xl font-black tracking-wider text-blue-400">
-          SAHA
-        </span>
+        <img
+          src="/brand/yetisplus-logo.png"
+          alt="Yetiş+ Saha"
+          className="h-9 w-auto"
+        />
         <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
           Yönetim
         </span>
@@ -80,7 +82,7 @@ export function Sidebar({ profile }: SidebarProps) {
               href={item.href}
               className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                  ? 'bg-teal-500 text-slate-900 font-semibold shadow-sm'
                   : 'hover:bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
@@ -100,7 +102,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
       {/* Footer Version */}
       <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center">
-        Saha Ekip Takip v1.0.0
+        Yetiş+ Saha Ekip Takip v1.0.0
       </div>
     </aside>
   );

@@ -29,7 +29,7 @@ export async function requestShiftPermissions(): Promise<PermissionResult> {
       return {
         granted: false,
         reason:
-          'Saha uygulamasının rota takibi yapabilmesi için ön plan konum iznine ihtiyacı vardır. Lütfen ayarlardan izin verin.',
+          'Yetiş+ Saha uygulamasının rota takibi yapabilmesi için ön plan konum iznine ihtiyacı vardır. Lütfen ayarlardan izin verin.',
       };
     }
 

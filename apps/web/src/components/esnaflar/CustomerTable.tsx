@@ -178,7 +178,7 @@ export function CustomerTable() {
 
         <Link
           href="/esnaflar/yeni"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-xs transition-colors"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-xs transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Yeni Esnaf</span>
@@ -201,7 +201,7 @@ export function CustomerTable() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="İşletme adı, yetkili veya telefon ara..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-teal-500 transition-colors"
           />
         </div>
 
@@ -210,7 +210,7 @@ export function CustomerTable() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-blue-500 bg-white transition-colors"
+            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-teal-500 bg-white transition-colors"
           >
             <option value="">Tüm Kategoriler</option>
             {categories.map((cat) => (
@@ -227,7 +227,7 @@ export function CustomerTable() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-blue-500 bg-white transition-colors"
+            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-teal-500 bg-white transition-colors"
           >
             <option value="all">Tüm Durumlar</option>
             <option value="active">Yalnız Aktifler</option>
@@ -329,7 +329,7 @@ export function CustomerTable() {
                       <Link
                         href={`/esnaflar/${c.id}/duzenle`}
                         title="Düzenle"
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-blue-600 transition-colors"
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-teal-600 transition-colors"
                       >
                         <Edit className="w-4 h-4" />
                       </Link>
