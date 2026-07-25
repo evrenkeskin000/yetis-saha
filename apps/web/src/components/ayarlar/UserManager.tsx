@@ -21,7 +21,6 @@ import { useDealershipScope } from '../../lib/DealershipScopeContext';
 import { useProfile } from '../../lib/hooks/useProfile';
 import { applyDealershipScope } from '../../lib/scopedQuery';
 import { CreateUserForm } from './CreateUserForm';
-import { InviteUserForm } from './InviteUserForm';
 
 function generateTempPassword(): string {
   const letters = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -265,7 +264,7 @@ export function UserManager() {
           <p className="text-xs text-slate-500">
             {isDealerAdmin
               ? 'Bayinizdeki saha temsilcilerini oluşturun, şifrelerini sıfırlayın ve hesap durumlarını yönetin'
-              : 'Kullanıcı oluşturun, davet edin, rollerini değiştirin ve hesap durumlarını yönetin'}
+              : 'Kullanıcı oluşturun, rollerini değiştirin ve hesap durumlarını yönetin'}
           </p>
         </div>
       </div>
@@ -277,10 +276,6 @@ export function UserManager() {
       )}
 
       <CreateUserForm
-        callerRole={profile?.role ?? 'dealer_admin'}
-        onSuccess={fetchUsers}
-      />
-      <InviteUserForm
         callerRole={profile?.role ?? 'dealer_admin'}
         onSuccess={fetchUsers}
       />
