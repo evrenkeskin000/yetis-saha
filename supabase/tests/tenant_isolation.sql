@@ -501,11 +501,15 @@ begin
 
   begin
     update public.visits set notes = 'yeniden' where id = v_visit_id;
-    raise exception 'FAIL-17b: kapanmış ziyaret güncellendi';
+    get diagnostics v_cnt = row_count;
+    if v_cnt > 0 then
+      raise exception 'FAIL-17b: kapanmış ziyaret güncellendi';
+    end if;
+    raise notice 'OK-17b: kapanmış ziyaret güncellenemez (0 satır)';
   exception
     when others then
       if sqlerrm like '%FAIL-17b%' then raise; end if;
-      raise notice 'OK-17b: kapanmış ziyaret güncellenemez';
+      raise notice 'OK-17b: kapanmış ziyaret güncellenemez (%)', sqlstate;
   end;
 
   -- -----------------------------------------------------------------
