@@ -30,6 +30,7 @@ export default function KameraScreen() {
   const [watermarkInfo, setWatermarkInfo] = useState<{
     dateStr: string;
     geoStr: string;
+    captureLocation: { latitude: number; longitude: number } | null;
   } | null>(null);
 
   const [processing, setProcessing] = useState<boolean>(false);
@@ -68,10 +69,15 @@ export default function KameraScreen() {
 
       // 1. Get GPS coordinates
       let geoStr = 'Konum Alınamadı';
+      let captureLocation: { latitude: number; longitude: number } | null = null;
       try {
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
+        captureLocation = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
         geoStr = `${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`;
       } catch {
         // Fallback if GPS fails
@@ -90,7 +96,7 @@ export default function KameraScreen() {
 
       if (photo?.uri) {
         setRawPhotoUri(photo.uri);
-        setWatermarkInfo({ dateStr, geoStr });
+        setWatermarkInfo({ dateStr, geoStr, captureLocation });
       }
     } catch (err) {
       console.error('Fotoğraf çekim hatası:', err);
@@ -115,12 +121,13 @@ export default function KameraScreen() {
       const compressed = await processAndCompressPhoto(watermarkedUri);
       setFileSizeKb(Math.round(compressed.sizeBytes / 1024));
 
-      // 3. Save to ActiveVisitContext
+      // 3. Save to ActiveVisitContext (capture_location = filigran GPS)
       await setCapturedPhoto({
         uri: compressed.uri,
         width: compressed.width,
         height: compressed.height,
         timestamp: new Date().toISOString(),
+        captureLocation: watermarkInfo?.captureLocation ?? null,
       });
 
       router.back();

@@ -1,4 +1,4 @@
-import type { Visit, VisitOutcome } from '@saha/shared';
+import type { Visit, VisitOutcome, GeoPoint } from '@saha/shared';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   ActivePhotoState,
@@ -10,17 +10,19 @@ import {
 import type { CustomerWithCategory } from './customers';
 import { uploadVisitPhotoWithBuffer } from './photo';
 import { supabase } from './supabase';
-import { performCheckIn, performCheckOut, type CheckInResult } from './visits';
+import {
+  performCancelVisit,
+  performCheckIn,
+  performCheckOut,
+  type CheckInResult,
+} from './visits';
 
 export interface ActiveVisitContextType {
   activeVisit: Visit | null;
   activeCustomer: CustomerWithCategory | null;
   capturedPhoto: ActivePhotoState | null;
   isInitialLoading: boolean;
-  startVisit: (
-    customer: CustomerWithCategory,
-    forceOutOfRange?: boolean
-  ) => Promise<CheckInResult>;
+  startVisit: (customer: CustomerWithCategory) => Promise<CheckInResult>;
   completeCurrentVisit: (
     outcome: VisitOutcome,
     notes?: string
@@ -46,7 +48,6 @@ export const ActiveVisitProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
 
-  // Recovery on initialization
   useEffect(() => {
     (async () => {
       try {
@@ -71,16 +72,23 @@ export const ActiveVisitProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const startVisit = async (
-    customer: CustomerWithCategory,
-    forceOutOfRange = false
+    customer: CustomerWithCategory
   ): Promise<CheckInResult> => {
-    if (activeVisit) {
+    // Yerel boş olsa bile DB'de açık ziyaret olabilir
+    if (!activeVisit) {
+      const recovered = await recoverActiveVisitFromSupabase(supabase);
+      if (recovered.visit && recovered.customer) {
+        setActiveVisit(recovered.visit);
+        setActiveCustomer(recovered.customer);
+        throw new Error(
+          'Zaten açık bir ziyaretiniz var. Önce onu tamamlayın veya iptal edin.'
+        );
+      }
+    } else {
       throw new Error('Halen devam eden bir ziyaretiniz var.');
     }
 
-    const checkInRes = await performCheckIn(supabase, customer, {
-      forceOutOfRange,
-    });
+    const checkInRes = await performCheckIn(supabase, customer);
 
     if (checkInRes.visit) {
       setActiveVisit(checkInRes.visit);
@@ -105,36 +113,58 @@ export const ActiveVisitProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (!capturedPhoto) {
-      throw new Error('Ziyareti bitirmek için en az 1 fotoğraf çekilmesi zorunludur.');
+      throw new Error(
+        'Ziyareti bitirmek için en az 1 fotoğraf çekilmesi zorunludur.'
+      );
     }
 
-    // Upload photo first
-    await uploadVisitPhotoWithBuffer(
-      supabase,
-      activeVisit.id,
-      capturedPhoto.uri,
-      activeCustomer?.location
-    );
+    let photoState = capturedPhoto;
 
-    // Perform check-out
-    const completed = await performCheckOut(
-      supabase,
-      activeVisit.id,
-      outcome,
-      notes
-    );
+    // Fotoğraf yüklendiyse ikinci kez yükleme (idempotent)
+    if (!photoState.uploadedPhotoId) {
+      const captureLoc: GeoPoint | null | undefined =
+        photoState.captureLocation ?? null;
+      const uploaded = await uploadVisitPhotoWithBuffer(
+        supabase,
+        activeVisit.id,
+        photoState.uri,
+        captureLoc
+      );
+      photoState = {
+        ...photoState,
+        uploadedPhotoId: uploaded.id,
+      };
+      setCapturedPhotoState(photoState);
+      await saveActiveVisitState(activeVisit, activeCustomer, photoState);
+    }
 
-    // Clear local active visit state
-    setActiveVisit(null);
-    setActiveCustomer(null);
-    setCapturedPhotoState(null);
-    await clearActiveVisitState();
+    try {
+      const completed = await performCheckOut(
+        supabase,
+        activeVisit.id,
+        outcome,
+        notes
+      );
 
-    return completed;
+      setActiveVisit(null);
+      setActiveCustomer(null);
+      setCapturedPhotoState(null);
+      await clearActiveVisitState();
+
+      return completed;
+    } catch (err) {
+      // Fotoğraf yüklü kaldı; check-out tekrar denenebilir
+      throw err;
+    }
   };
 
   const cancelCurrentVisit = async () => {
-    // Note: cancellation clears local state (visit stays in DB as unchecked-out or aborted)
+    if (!activeVisit) {
+      throw new Error('Aktif bir ziyaret bulunamadı.');
+    }
+
+    await performCancelVisit(supabase, activeVisit.id);
+
     setActiveVisit(null);
     setActiveCustomer(null);
     setCapturedPhotoState(null);

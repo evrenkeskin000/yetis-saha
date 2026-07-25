@@ -48,6 +48,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({
         const status = await syncShiftStatus();
         setIsShiftActive(status.isShiftActive);
         setShiftStartTime(status.startTime);
+        if (status.isShiftActive) {
+          console.log('[ShiftContext] Açılış flush çalıştırılıyor...');
+          await flushLocationBuffer();
+        }
         await refreshBufferCount();
       } catch (err) {
         console.error('[ShiftContext] Başlatma hatası:', err);
@@ -64,7 +68,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({
     let interval: NodeJS.Timeout | null = null;
     if (isShiftActive) {
       interval = setInterval(async () => {
-        console.log('[ShiftContext] 5 dk periyodik flush çalıştırılıyor...');
+        console.log('[ShiftContext] 90 sn periyodik flush çalıştırılıyor...');
         await flushLocationBuffer();
         await refreshBufferCount();
       }, FLUSH_INTERVAL_MS);
@@ -78,6 +82,12 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({
     const startTimeIso = await startShift();
     setIsShiftActive(true);
     setShiftStartTime(startTimeIso);
+    // Panelin hemen görmesi için ilk flush (periyodik 90 sn beklemeden)
+    try {
+      await flushLocationBuffer();
+    } catch (err) {
+      console.warn('[ShiftContext] İlk flush atlandı:', err);
+    }
     await refreshBufferCount();
   };
 

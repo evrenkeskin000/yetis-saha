@@ -6,7 +6,7 @@ import { UserManager } from '../../../../components/ayarlar/UserManager';
 
 export default function KullanicilarPage() {
   return (
-    <RoleGuard allowedRoles={['admin']}>
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
       <UserManager />
     </RoleGuard>
   );

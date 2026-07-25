@@ -11,12 +11,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { FotoGaleri } from '../../src/components/FotoGaleri';
-import { HaritaGorunumu, type PinItem } from '../../src/components/HaritaGorunumu';
-import { getCategoryColor } from '../../src/constants/map';
-import { useActiveVisit } from '../../src/lib/ActiveVisitContext';
-import { fetchCustomerDetail, type CustomerDetailData } from '../../src/lib/customers';
-import { supabase } from '../../src/lib/supabase';
+import { FotoGaleri } from '../../../src/components/FotoGaleri';
+import { HaritaGorunumu, type PinItem } from '../../../src/components/HaritaGorunumu';
+import { getCategoryColor } from '../../../src/constants/map';
+import { useActiveVisit } from '../../../src/lib/ActiveVisitContext';
+import { useAuth } from '../../../src/lib/auth';
+import {
+  CustomerAccessError,
+  fetchCustomerDetail,
+  type CustomerDetailData,
+} from '../../../src/lib/customers';
+import { supabase } from '../../../src/lib/supabase';
 
 const OUTCOME_LABELS: Record<string, string> = {
   agreed: 'Anlaşıldı',
@@ -42,6 +47,7 @@ export default function EsnafDetayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { activeVisit, startVisit } = useActiveVisit();
+  const { dealershipId, user } = useAuth();
 
   const [data, setData] = useState<CustomerDetailData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -49,20 +55,25 @@ export default function EsnafDetayScreen() {
   const [startingVisit, setStartingVisit] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !dealershipId) return;
     (async () => {
       try {
         setLoading(true);
-        const detail = await fetchCustomerDetail(supabase, id);
+        setError(null);
+        const detail = await fetchCustomerDetail(supabase, id, dealershipId);
         setData(detail);
       } catch (err) {
         console.error('Detay yükleme hatası:', err);
-        setError('Esnaf detayları yüklenirken hata oluştu.');
+        if (err instanceof CustomerAccessError) {
+          setError(err.message);
+        } else {
+          setError('Esnaf detayları yüklenirken hata oluştu.');
+        }
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, dealershipId]);
 
   if (loading) {
     return (
@@ -91,16 +102,23 @@ export default function EsnafDetayScreen() {
   const { customer, visits, photos } = data;
   const categoryName = customer.category?.name ?? 'Kategorisiz';
   const categoryColor = getCategoryColor(categoryName);
+  const canEdit = !!user?.id && customer.created_by === user.id;
 
-  const pins: PinItem[] = [
-    {
-      id: customer.id,
-      title: customer.business_name,
-      subtitle: customer.address,
-      categoryName,
-      coordinate: [customer.location.longitude, customer.location.latitude],
-    },
-  ];
+  const pins: PinItem[] =
+    customer.location && !customer.locationMissing
+      ? [
+          {
+            id: customer.id,
+            title: customer.business_name,
+            subtitle: customer.address,
+            categoryName,
+            coordinate: [
+              customer.location.longitude,
+              customer.location.latitude,
+            ],
+          },
+        ]
+      : [];
 
   const handleCallPhone = () => {
     if (customer.phone) {
@@ -130,28 +148,25 @@ export default function EsnafDetayScreen() {
 
     try {
       setStartingVisit(true);
-      const res = await startVisit(customer, false);
+      const res = await startVisit(customer);
 
-      if (!res.visit && !res.isGeofenceValid) {
-        // Out of range geofence warning
+      if (!res.visit) {
         Alert.alert(
-          'Geofence Menzil Dışı',
-          `Esnafa ${res.distanceMeters} m uzaktasınız (izin verilen en fazla 100 m). Ne yapmak istersiniz?`,
+          'Ziyaret Başlatılamadı',
+          res.error || 'Ziyaret başlatılamadı. Lütfen tekrar deneyin.',
+          [{ text: 'Tamam' }]
+        );
+        return;
+      }
+
+      if (res.isMockLocation) {
+        Alert.alert(
+          'Sahte Konum Uyarısı',
+          'Cihazda sahte konum tespit edildi. Ziyaret başlatıldı; bu durum kayıt altına alındı.',
           [
-            { text: 'Vazgeç', style: 'cancel' },
             {
-              text: 'Yine de Başlat',
-              onPress: async () => {
-                try {
-                  setStartingVisit(true);
-                  await startVisit(customer, true);
-                  router.push('/ziyaret/aktif');
-                } catch (err) {
-                  Alert.alert('Hata', (err as Error)?.message);
-                } finally {
-                  setStartingVisit(false);
-                }
-              },
+              text: 'Tamam',
+              onPress: () => router.push('/ziyaret/aktif'),
             },
           ]
         );
@@ -188,8 +203,19 @@ export default function EsnafDetayScreen() {
               <Text style={styles.ownerName}>Yetkili: {customer.owner_name}</Text>
             ) : null}
           </View>
-          <View style={[styles.badge, { backgroundColor: categoryColor }]}>
-            <Text style={styles.badgeText}>{categoryName}</Text>
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            <View style={[styles.badge, { backgroundColor: categoryColor }]}>
+              <Text style={styles.badgeText}>{categoryName}</Text>
+            </View>
+            {canEdit ? (
+              <TouchableOpacity
+                onPress={() => router.push(`/esnaf/${customer.id}/duzenle`)}
+                style={styles.editBtn}
+              >
+                <Ionicons name="create-outline" size={16} color="#38bdf8" />
+                <Text style={styles.editBtnText}>Düzenle</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
@@ -217,13 +243,6 @@ export default function EsnafDetayScreen() {
               <Text style={styles.infoText}>{customer.address}</Text>
             </View>
           ) : null}
-
-          <View style={styles.infoItem}>
-            <Ionicons name="radio-outline" size={18} color="#94a3b8" />
-            <Text style={styles.infoText}>
-              Geofence Yarıçapı: {customer.geofence_radius_m} metre
-            </Text>
-          </View>
 
           {customer.notes ? (
             <View style={styles.infoItem}>
@@ -263,16 +282,26 @@ export default function EsnafDetayScreen() {
         <Ionicons name="map-outline" size={18} color="#f8fafc" />
         <Text style={styles.sectionTitle}>Konum Haritası</Text>
       </View>
-      <View style={styles.mapContainer}>
-        <HaritaGorunumu
-          pins={pins}
-          showUserLocation={false}
-          initialRegion={{
-            centerCoordinate: [customer.location.longitude, customer.location.latitude],
-            zoomLevel: 15,
-          }}
-        />
-      </View>
+      {customer.location && !customer.locationMissing ? (
+        <View style={styles.mapContainer}>
+          <HaritaGorunumu
+            pins={pins}
+            showUserLocation={false}
+            initialRegion={{
+              centerCoordinate: [
+                customer.location.longitude,
+                customer.location.latitude,
+              ],
+              zoomLevel: 15,
+            }}
+          />
+        </View>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="warning-outline" size={32} color="#f59e0b" />
+          <Text style={styles.emptyText}>Konum bilgisi eksik</Text>
+        </View>
+      )}
 
       {/* Visit Photos */}
       <View style={styles.sectionHeader}>
@@ -294,7 +323,7 @@ export default function EsnafDetayScreen() {
         </View>
       ) : (
         <View style={styles.visitList}>
-          {visits.map((v) => {
+          {visits.map((v: { id: string; outcome: string | null; check_in_at: string; duration_minutes?: number | null; notes?: string | null }) => {
             const outcomeText = v.outcome ? OUTCOME_LABELS[v.outcome] || v.outcome : 'Belirtilmedi';
             const outcomeColor = v.outcome ? OUTCOME_COLORS[v.outcome] || '#64748b' : '#64748b';
 
@@ -397,6 +426,22 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+  },
+  editBtnText: {
+    color: '#38bdf8',
     fontSize: 12,
     fontWeight: '600',
   },

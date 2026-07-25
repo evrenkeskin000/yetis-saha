@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Store } from 'lucide-react';
 import { customerFormSchema, type Category, type GeoPoint } from '@saha/shared';
+import { ALL_DEALERSHIPS } from '@saha/shared';
 import { createClient } from '../../lib/supabase/client';
 import { parseGeoPoint, toEwkt } from '../../lib/geo';
+import { useDealershipScope } from '../../lib/DealershipScopeContext';
+import { useProfile } from '../../lib/hooks/useProfile';
 import { LocationPickerMapLoader } from './LocationPickerMapLoader';
 
 export interface CustomerFormInitialValues {
@@ -16,8 +19,8 @@ export interface CustomerFormInitialValues {
   address?: string | null;
   category_id?: string | null;
   location?: unknown;
-  geofence_radius_m?: number;
   notes?: string | null;
+  dealership_id?: string | null;
 }
 
 interface CustomerFormProps {
@@ -25,12 +28,27 @@ interface CustomerFormProps {
   isEditing?: boolean;
 }
 
-export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFormProps) {
+export function CustomerForm({
+  initialCustomer,
+  isEditing = false,
+}: CustomerFormProps) {
   const router = useRouter();
+  const { profile } = useProfile();
+  const { scope, dealership, dealerships } = useDealershipScope();
+  const needDealershipPicker =
+    !isEditing &&
+    profile?.role === 'yetis_admin' &&
+    scope === ALL_DEALERSHIPS;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedDealershipId, setSelectedDealershipId] = useState(
+    initialCustomer?.dealership_id ||
+      (scope !== ALL_DEALERSHIPS ? scope : '') ||
+      ''
+  );
 
   const initialGeoPoint = parseGeoPoint(initialCustomer?.location);
 
@@ -40,7 +58,6 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
     phone: initialCustomer?.phone || '',
     address: initialCustomer?.address || '',
     category_id: initialCustomer?.category_id || '',
-    geofence_radius_m: initialCustomer?.geofence_radius_m ?? 100,
     notes: initialCustomer?.notes || '',
     location: initialGeoPoint as GeoPoint | null,
   });
@@ -89,7 +106,6 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
       phone: formState.phone,
       address: formState.address,
       category_id: formState.category_id,
-      geofence_radius_m: Number(formState.geofence_radius_m),
       notes: formState.notes,
       location: formState.location,
     };
@@ -120,7 +136,6 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
         phone: validData.phone || null,
         address: validData.address || null,
         category_id: validData.category_id,
-        geofence_radius_m: validData.geofence_radius_m,
         notes: validData.notes || null,
         location: ewktLocation,
       };
@@ -140,10 +155,35 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
           return;
         }
       } else {
+        let dealershipId: string | null = null;
+        if (profile?.role === 'dealer_admin') {
+          dealershipId = profile.dealership_id;
+        } else if (scope !== ALL_DEALERSHIPS) {
+          dealershipId = scope;
+        } else {
+          dealershipId = selectedDealershipId || null;
+        }
+
+        if (!dealershipId) {
+          setFieldErrors({
+            dealership_id: 'Lütfen bir bayi seçin',
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        if (!profile?.id) {
+          setServerError('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
+          setSubmitting(false);
+          return;
+        }
+
         const { error } = await supabase.from('customers').insert([
           {
             ...customerPayload,
             is_active: true,
+            dealership_id: dealershipId,
+            created_by: profile.id,
           },
         ]);
 
@@ -227,6 +267,60 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
             )}
           </div>
 
+          {needDealershipPicker && (
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700">
+                Bayi <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedDealershipId}
+                onChange={(e) => setSelectedDealershipId(e.target.value)}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden bg-white ${
+                  fieldErrors.dealership_id
+                    ? 'border-red-300 bg-red-50/50'
+                    : 'border-slate-300 focus:border-teal-500'
+                }`}
+              >
+                <option value="">Bayi seçin</option>
+                {dealerships
+                  .filter((d) => d.is_active)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+              </select>
+              {fieldErrors.dealership_id && (
+                <p className="text-xs text-red-600 font-medium">
+                  {fieldErrors.dealership_id}
+                </p>
+              )}
+            </div>
+          )}
+
+          {!needDealershipPicker && !isEditing && dealership && (
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700">
+                Bayi
+              </label>
+              <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+                {dealership.name}
+              </div>
+            </div>
+          )}
+
+          {isEditing && initialCustomer?.dealership_id && (
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700">
+                Bayi
+              </label>
+              <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+                {dealerships.find((d) => d.id === initialCustomer.dealership_id)
+                  ?.name ?? '—'}
+              </div>
+            </div>
+          )}
+
           {/* Yetkili Adı */}
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700">
@@ -306,39 +400,6 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
             )}
           </div>
 
-          {/* Geofence Yarıçapı */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
-              Geofence Yarıçapı (Metre) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              min={25}
-              max={1000}
-              value={formState.geofence_radius_m}
-              onChange={(e) =>
-                setFormState({
-                  ...formState,
-                  geofence_radius_m: Number(e.target.value),
-                })
-              }
-              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-hidden transition-colors ${
-                fieldErrors.geofence_radius_m
-                  ? 'border-red-300 bg-red-50/50 focus:border-red-500'
-                  : 'border-slate-300 focus:border-teal-500'
-              }`}
-            />
-            {fieldErrors.geofence_radius_m ? (
-              <p className="text-xs text-red-600 font-medium">
-                {fieldErrors.geofence_radius_m}
-              </p>
-            ) : (
-              <p className="text-[11px] text-slate-500">
-                Saha temsilcisinin check-in yapabileceği alan (25m - 1000m arası).
-              </p>
-            )}
-          </div>
-
           {/* Adres */}
           <div className="space-y-1.5 md:col-span-2">
             <label className="block text-xs font-semibold text-slate-700">
@@ -360,6 +421,9 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
             <label className="block text-xs font-semibold text-slate-700">
               Haritadan Konum Seçin <span className="text-red-500">*</span>
             </label>
+            <p className="text-xs text-slate-500 -mt-0.5 mb-1">
+              Adres arayın veya haritayı kaydırıp pini esnafın üzerine getirin
+            </p>
             <LocationPickerMapLoader
               value={formState.location}
               onChange={(loc) => {
@@ -373,6 +437,14 @@ export function CustomerForm({ initialCustomer, isEditing = false }: CustomerFor
                     return newErr;
                   });
                 }
+              }}
+              onAddressChange={(addr) => {
+                // Kullanıcının yazdığı adresi ezme — yalnızca boşsa doldur
+                setFormState((prev) =>
+                  prev.address.trim().length === 0
+                    ? { ...prev, address: addr }
+                    : prev
+                );
               }}
             />
             {(fieldErrors.location ||

@@ -2,11 +2,16 @@
 
 import dynamic from 'next/dynamic';
 import React from 'react';
-import type { WebCustomer, WebVisit } from '../../lib/hooks/useTodayVisits';
+import type {
+  LiveRep,
+  WebCustomer,
+  WebVisit,
+} from '../../lib/hooks/useTodayVisits';
 
 interface MapLoaderProps {
   customers: WebCustomer[];
   visits: WebVisit[];
+  liveReps: LiveRep[];
 }
 
 export const MapLoader = dynamic<MapLoaderProps>(

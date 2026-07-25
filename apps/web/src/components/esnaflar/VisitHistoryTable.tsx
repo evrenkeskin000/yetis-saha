@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Calendar, Clock } from 'lucide-react';
 import type { Visit, VisitOutcome } from '@saha/shared';
 import { formatDateTimeTR } from '../../lib/format';
 import { getOutcomeColor, getOutcomeLabel } from '../../lib/outcome';
@@ -45,7 +45,6 @@ export function VisitHistoryTable({ visits }: VisitHistoryTableProps) {
               <th className="py-3 px-4">Temsilci</th>
               <th className="py-3 px-4">Süre</th>
               <th className="py-3 px-4">Sonuç</th>
-              <th className="py-3 px-4">Geofence</th>
               <th className="py-3 px-4">Notlar</th>
             </tr>
           </thead>
@@ -86,25 +85,6 @@ export function VisitHistoryTable({ visits }: VisitHistoryTableProps) {
                     >
                       {label}
                     </span>
-                  </td>
-
-                  {/* Geofence */}
-                  <td className="py-3 px-4">
-                    {v.is_geofence_valid === true && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        Geçerli
-                      </span>
-                    )}
-                    {v.is_geofence_valid === false && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        <AlertTriangle className="w-3 h-3 text-amber-600" />
-                        İhlal
-                      </span>
-                    )}
-                    {v.is_geofence_valid === null && (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
                   </td>
 
                   {/* Notlar */}

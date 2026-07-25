@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Building2,
   Edit,
@@ -13,47 +12,60 @@ import {
   Store,
   UserCheck,
 } from 'lucide-react';
-import type { Category, Customer } from '@saha/shared';
+import { ALL_DEALERSHIPS, type Category, type Customer } from '@saha/shared';
 import { createClient } from '../../lib/supabase/client';
 import { formatDateTimeTR } from '../../lib/format';
+import { useDealershipScope } from '../../lib/DealershipScopeContext';
+import { applyDealershipScope } from '../../lib/scopedQuery';
 
 interface CustomerRow extends Customer {
   category_name?: string;
   category_icon?: string | null;
   last_visit_at?: string | null;
+  dealership_name?: string;
 }
 
 export function CustomerTable() {
-  const router = useRouter();
+  const { scope, dealerships, loading: scopeLoading } = useDealershipScope();
+  const showDealership = scope === ALL_DEALERSHIPS;
+
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'passive'>('all');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'active' | 'passive'
+  >('all');
 
-  // Deactivate confirm modal state
-  const [confirmModalCustomer, setConfirmModalCustomer] = useState<CustomerRow | null>(null);
+  const [confirmModalCustomer, setConfirmModalCustomer] =
+    useState<CustomerRow | null>(null);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (scopeLoading) return;
+
     try {
       setLoading(true);
       setError(null);
       const supabase = createClient();
 
-      // Query 1: customers
-      const { data: customerData, error: custErr } = await supabase
-        .from('customers')
-        .select('id, business_name, owner_name, phone, address, category_id, location, geofence_radius_m, is_active, created_at')
-        .order('created_at', { ascending: false });
+      const customersQuery = applyDealershipScope(
+        supabase
+          .from('customers')
+          .select(
+            'id, business_name, owner_name, phone, address, category_id, location, is_active, dealership_id, created_by, created_at'
+          )
+          .order('created_at', { ascending: false }),
+        scope
+      );
+
+      const { data: customerData, error: custErr } = await customersQuery;
 
       if (custErr) throw custErr;
 
-      // Query 2: categories
       const { data: catData, error: catErr } = await supabase
         .from('categories')
         .select('*')
@@ -61,41 +73,69 @@ export function CustomerTable() {
 
       if (catErr) throw catErr;
 
-      // Query 3: visits for latest visit per customer
-      const { data: visitData, error: visitErr } = await supabase
-        .from('visits')
-        .select('customer_id, check_in_at')
-        .order('check_in_at', { ascending: false });
+      const customerIds = (customerData || []).map(
+        (c: { id: string }) => c.id as string
+      );
+      let visitData: { customer_id: string; check_in_at: string }[] = [];
 
-      if (visitErr) throw visitErr;
+      if (customerIds.length > 0) {
+        // Yalnızca listelenen esnaflar için son ziyaret; tarihe göre sınırlı
+        const since = new Date();
+        since.setMonth(since.getMonth() - 6);
 
-      // Client-side joins
+        const { data: vData, error: visitErr } = await supabase
+          .from('visits')
+          .select('customer_id, check_in_at')
+          .in('customer_id', customerIds)
+          .gte('check_in_at', since.toISOString())
+          .order('check_in_at', { ascending: false });
+
+        if (visitErr) throw visitErr;
+        visitData = (vData as typeof visitData) || [];
+      }
+
       const catMap = new Map<string, Category>();
-      (catData as Category[] || []).forEach((c) => catMap.set(c.id, c));
+      ((catData as Category[]) || []).forEach((c) => catMap.set(c.id, c));
+
+      const dealershipMap = new Map(
+        dealerships.map((d) => [d.id, d.name] as const)
+      );
 
       const latestVisitMap = new Map<string, string>();
-      (visitData || []).forEach((v: { customer_id: string; check_in_at: string }) => {
+      visitData.forEach((v) => {
         if (v.customer_id && !latestVisitMap.has(v.customer_id)) {
           latestVisitMap.set(v.customer_id, v.check_in_at);
         }
       });
 
-      const joined: CustomerRow[] = (customerData || []).map((c: any) => {
-        const cat = c.category_id ? catMap.get(c.category_id) : undefined;
-        return {
-          ...c,
-          location: c.location,
-          category_name: cat?.name || 'Kategorisiz',
-          category_icon: cat?.icon || null,
-          last_visit_at: latestVisitMap.get(c.id) || null,
-        };
-      });
+      const joined: CustomerRow[] = (customerData || []).map(
+        (c: Record<string, unknown>) => {
+          const cat = c.category_id
+            ? catMap.get(String(c.category_id))
+            : undefined;
+          const id = String(c.id);
+          const dealershipId = String(c.dealership_id || '');
+          return {
+            ...(c as unknown as Customer),
+            id,
+            dealership_id: dealershipId,
+            category_name: cat?.name || 'Kategorisiz',
+            category_icon: cat?.icon || null,
+            last_visit_at: latestVisitMap.get(id) || null,
+            dealership_name: dealershipMap.get(dealershipId) || '—',
+          };
+        }
+      );
 
-      setCategories(catData as Category[] || []);
+      setCategories((catData as Category[]) || []);
       setCustomers(joined);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Esnaflar yüklenirken hata:', err);
-      if (err?.code === '42501') {
+      const code =
+        err && typeof err === 'object' && 'code' in err
+          ? String((err as { code: string }).code)
+          : '';
+      if (code === '42501') {
         setError('Bu işlem için yetkiniz yok.');
       } else {
         setError('Esnaf verileri yüklenirken bir sorun oluştu.');
@@ -103,11 +143,11 @@ export function CustomerTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [scope, scopeLoading, dealerships]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleToggleActive = async (customer: CustomerRow) => {
     try {
@@ -129,9 +169,10 @@ export function CustomerTable() {
         return;
       }
 
-      // Update local state
       setCustomers((prev) =>
-        prev.map((c) => (c.id === customer.id ? { ...c, is_active: nextState } : c))
+        prev.map((c) =>
+          c.id === customer.id ? { ...c, is_active: nextState } : c
+        )
       );
       setConfirmModalCustomer(null);
     } catch (err) {
@@ -143,7 +184,6 @@ export function CustomerTable() {
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
-      // Search query filter
       const q = searchQuery.toLowerCase().trim();
       if (q) {
         const matchName = c.business_name?.toLowerCase().includes(q);
@@ -152,12 +192,10 @@ export function CustomerTable() {
         if (!matchName && !matchOwner && !matchPhone) return false;
       }
 
-      // Category filter
       if (selectedCategory && c.category_id !== selectedCategory) {
         return false;
       }
 
-      // Status filter
       if (statusFilter === 'active' && !c.is_active) return false;
       if (statusFilter === 'passive' && c.is_active) return false;
 
@@ -165,14 +203,16 @@ export function CustomerTable() {
     });
   }, [customers, searchQuery, selectedCategory, statusFilter]);
 
+  const isLoading = loading || scopeLoading;
+
   return (
     <div className="space-y-6">
-      {/* Header & New Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Esnaf Yönetimi</h1>
           <p className="text-xs text-slate-500">
-            Sistemdeki tüm müşterileri ve sahadaki esnaf noktalarını inceleyin ve yönetin
+            Sistemdeki müşterileri ve sahadaki esnaf noktalarını inceleyin ve
+            yönetin
           </p>
         </div>
 
@@ -191,9 +231,7 @@ export function CustomerTable() {
         </div>
       )}
 
-      {/* Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center gap-3">
-        {/* Search */}
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -205,7 +243,6 @@ export function CustomerTable() {
           />
         </div>
 
-        {/* Category Filter */}
         <div className="w-full md:w-56">
           <select
             value={selectedCategory}
@@ -222,11 +259,12 @@ export function CustomerTable() {
           </select>
         </div>
 
-        {/* Status Filter */}
         <div className="w-full md:w-44">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as 'all' | 'active' | 'passive')
+            }
             className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-teal-500 bg-white transition-colors"
           >
             <option value="all">Tüm Durumlar</option>
@@ -236,9 +274,8 @@ export function CustomerTable() {
         </div>
       </div>
 
-      {/* Customers Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="p-12 text-center text-slate-500 text-sm">
             Esnaf verileri yükleniyor...
           </div>
@@ -255,6 +292,9 @@ export function CustomerTable() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">İşletme Adı</th>
+                  {showDealership && (
+                    <th className="py-3.5 px-4">Bayi</th>
+                  )}
                   <th className="py-3.5 px-4">Yetkili</th>
                   <th className="py-3.5 px-4">Telefon</th>
                   <th className="py-3.5 px-4">Kategori</th>
@@ -271,27 +311,33 @@ export function CustomerTable() {
                       !c.is_active ? 'bg-slate-50/40' : ''
                     }`}
                   >
-                    {/* İşletme Adı */}
                     <td className="py-3.5 px-4 font-semibold text-slate-900">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className={!c.is_active ? 'line-through text-slate-500' : ''}>
+                        <span
+                          className={
+                            !c.is_active ? 'line-through text-slate-500' : ''
+                          }
+                        >
                           {c.business_name}
                         </span>
                       </div>
                     </td>
 
-                    {/* Yetkili */}
+                    {showDealership && (
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-600">
+                        {c.dealership_name}
+                      </td>
+                    )}
+
                     <td className="py-3.5 px-4 text-slate-600">
                       {c.owner_name || '-'}
                     </td>
 
-                    {/* Telefon */}
                     <td className="py-3.5 px-4 font-mono text-xs text-slate-600">
                       {c.phone || '-'}
                     </td>
 
-                    {/* Kategori */}
                     <td className="py-3.5 px-4 text-slate-700">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-700">
                         {c.category_icon && <span>{c.category_icon}</span>}
@@ -299,12 +345,10 @@ export function CustomerTable() {
                       </span>
                     </td>
 
-                    {/* Son Ziyaret */}
                     <td className="py-3.5 px-4 text-slate-600 text-xs font-medium">
                       {formatDateTimeTR(c.last_visit_at)}
                     </td>
 
-                    {/* Durum */}
                     <td className="py-3.5 px-4">
                       {c.is_active ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -317,42 +361,43 @@ export function CustomerTable() {
                       )}
                     </td>
 
-                    {/* İşlemler */}
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      <Link
-                        href={`/esnaflar/${c.id}`}
-                        title="Detay Göster"
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                      <Link
-                        href={`/esnaflar/${c.id}/duzenle`}
-                        title="Düzenle"
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-teal-600 transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Link>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        <Link
+                          href={`/esnaflar/${c.id}`}
+                          title="Detay Göster"
+                          className="inline-flex shrink-0 items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                        <Link
+                          href={`/esnaflar/${c.id}/duzenle`}
+                          title="Düzenle"
+                          className="inline-flex shrink-0 items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-teal-600 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
 
-                      {c.is_active ? (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmModalCustomer(c)}
-                          title="Pasife Al"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors"
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(c)}
-                          title="Aktifleştir"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 text-emerald-600 transition-colors"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                        </button>
-                      )}
+                        {c.is_active ? (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmModalCustomer(c)}
+                            title="Pasife Al"
+                            className="inline-flex shrink-0 items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors"
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(c)}
+                            title="Aktifleştir"
+                            className="inline-flex shrink-0 items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 text-emerald-600 transition-colors"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -362,15 +407,14 @@ export function CustomerTable() {
         )}
       </div>
 
-      {/* Pasife Al Confirmation Modal */}
       {confirmModalCustomer && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900">
-              Esnafı Pasife Al
-            </h3>
+            <h3 className="text-lg font-bold text-slate-900">Esnafı Pasife Al</h3>
             <p className="text-sm text-slate-600">
-              <strong>{confirmModalCustomer.business_name}</strong> isimli esnafı pasife almak istediğinizden emin misiniz? Esnaf silinmez, pasif duruma getirilir.
+              <strong>{confirmModalCustomer.business_name}</strong> isimli
+              esnafı pasife almak istediğinizden emin misiniz? Esnaf silinmez,
+              pasif duruma getirilir.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

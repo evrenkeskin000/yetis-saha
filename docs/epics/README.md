@@ -1,9 +1,17 @@
 # Saha — Epic Geliştirme Planı
 
-Bu klasör, **Saha Ekip Takip ve Pazarlama Yönetim Sistemi**'nin AI coding agent'lar ile sıfırdan geliştirilmesi için hazırlanmış epic promptlarını içerir.
+Bu klasör, **Yetiş+ Saha Ekip Takip ve Pazarlama Yönetim Sistemi**'nin AI coding agent'lar ile geliştirilmesi için hazırlanmış epic promptlarını içerir.
 
-- **Kapsam:** Faz 1 (MVP) + Faz 2. Faz 3 (rota optimizasyonu, bölge yönetimi, offline-first, bildirimler) bu planda **yoktur**.
+- **Kapsam:** Faz 1 (MVP, E01–E10 — tamamlandı) + Faz 2 (çoklu bayi dönüşümü, E11–E20 — güncel plan). Faz 3 (rota optimizasyonu, bölge yönetimi, offline-first, bildirimler) bu planda **yoktur**.
 - **Öncelik:** $0/ay maliyet. Bu öncelik doğrultusunda iki mimari karar alınmıştır (bkz. Karar Kayıtları).
+
+## Güncel Durum (25 Temmuz 2026)
+
+Faz 2'ye başlamadan önce projenin gerçek durumu denetlendi. Bulgular, kanıtları ve hangi epicte kapatılacakları: [docs/proje-denetimi-2026-07-25.md](../proje-denetimi-2026-07-25.md).
+
+Öne çıkanlar: mobil `tsc` 788 hata veriyordu (E13), menzil dışı check-in engellenmiyordu (E18), saha temsilcisi esnaf ekleyemiyordu (E17), `field_rep` web paneline girebiliyordu (E14) ve otomatik test/CI zemini yoktu (E20). Bu nedenle E11–E20, hem çoklu bayi mimarisini kurar hem de mevcut açıkları ilgili adımlara dağıtarak kapatır.
+
+**Rol modeli (kesin):** `yetis_admin`, `dealer_admin`, `field_rep`. `dealer_manager` rolü kapsam dışıdır. E01–E10 belgelerinde geçen `admin` / `manager` adları tarihseldir.
 
 ## Nasıl Kullanılır
 
@@ -12,7 +20,9 @@ Bu klasör, **Saha Ekip Takip ve Pazarlama Yönetim Sistemi**'nin AI coding agen
 3. Agent bitince, prompttaki DOĞRULAMA komutlarını **kendin çalıştır** — agent'ın "geçti" demesine güvenme.
 4. Kabul kriterleri sağlanmadan bir sonraki epice geçme; yarım epic üstüne yeni epic başlatma.
 
-## Epic Listesi (1 Orta + 9 Küçük)
+## Faz 1 — Epic Listesi (Tamamlandı, tarihsel kayıt)
+
+Aşağıdaki epicler Faz 1 kapsamında tamamlanmıştır. Rol adları (`admin`, `manager`) ve E06'daki "Yine de Başlat" akışı gibi maddeler **artık geçerli değildir**; yerlerine E11–E20 geçer. Bu dosyalar yeniden yazılmaz, geçmiş kaydı olarak korunur.
 
 | # | Epic | Boyut | Bağımlılıklar | Hat |
 |:--|:-----|:------|:--------------|:----|
@@ -27,7 +37,56 @@ Bu klasör, **Saha Ekip Takip ve Pazarlama Yönetim Sistemi**'nin AI coding agen
 | E09 | Mobil — Arka Plan GPS + Vardiya (Faz 2) | Küçük | E06 + Faz 1 kapısı | Mobil |
 | E10 | Web — KPI Dashboard + Raporlar (Faz 2) | Küçük | E08, E09 | Web |
 
-## Bağımlılık Grafiği
+## Faz 2 — Çoklu Bayi Epic Listesi (Güncel Plan)
+
+| # | Epic | Boyut | Bağımlılıklar | Hat |
+|:--|:-----|:------|:--------------|:----|
+| [E11](E11-bayi-semasi-ve-migrasyon.md) | Bayi Şeması, Rol Dönüşümü ve Veri Taşıma | Küçük | E02 | DB |
+| [E12](E12-tenant-rls-ve-veri-izolasyonu.md) | Bayi Bazlı RLS, Aktiflik Kapıları ve Veri İzolasyonu | **ORTA** | E11 | DB |
+| [E13](E13-shared-sozlesmeler-ve-test-zemini.md) | Shared Sözleşmeler, Rol Modeli ve Test Zemini | Küçük | E11, E12 | Ortak |
+| [E14](E14-auth-ve-hesap-yasamdongusu.md) | Giriş Akışı, Rol Kapıları ve Hesap Yaşam Döngüsü | **ORTA** | E13 | Web + Mobil |
+| [E15](E15-yetis-admin-bayi-yonetimi.md) | Yetiş Admin Bayi Yönetimi ve Bayi Seçici | Küçük | E14 | Web |
+| [E16](E16-bayi-web-paneli-ve-global-kategoriler.md) | Bayi Kapsamlı Panel, Esnaf/Kullanıcı ve Global Kategoriler | **ORTA** | E15 | Web |
+| [E17](E17-mobil-bayi-kapsami-ve-esnaf-sahipligi.md) | Mobil Bayi Kapsamı, Esnaf Sahipliği ve Veri İzolasyonu | Küçük | E14 | Mobil |
+| [E18](E18-ziyaret-butunlugu-geofence-ve-denetim.md) | Ziyaret Bütünlüğü: Sert Geofence, Denetim Kaydı, Durum Makinesi | **ORTA** | E12, E17 | DB + Mobil |
+| [E19](E19-ziyaret-arsivi-ve-tenant-raporlama.md) | Ziyaret Arşivi: Web `/ziyaretler`, Mobil Geçmiş, Denetim Raporları | Küçük | E16, E18 | Web + Mobil |
+| [E20](E20-ci-e2e-ve-fiziksel-cihaz-kabul.md) | Otomatik Testler, CI Hattı ve Fiziksel Cihaz Kabul Kapısı | **ORTA** | E13, E19 | Ortak |
+
+### Faz 2 Bağımlılık Grafiği
+
+```mermaid
+graph TD
+    E11[E11 Bayi Şeması + Rol Dönüşümü] --> E12[E12 Tenant RLS + Aktiflik]
+    E11 --> E13[E13 Shared + Test Zemini]
+    E12 --> E13
+    E13 --> E14[E14 Auth + Rol Kapıları]
+    E14 --> E15[E15 Bayi Yönetimi + Seçici]
+    E14 --> E17[E17 Mobil Bayi Kapsamı]
+    E15 --> E16[E16 Bayi Kapsamlı Web Paneli]
+    E12 --> E18[E18 Ziyaret Bütünlüğü]
+    E17 --> E18
+    E16 --> E19[E19 Ziyaret Arşivi]
+    E18 --> E19
+    E19 --> E20[E20 CI + Kabul Kapısı]
+    E13 --> E20
+```
+
+### Faz 2 Çalıştırma Sırası
+
+| Sıra | Epic | Neden bu sırada | Bittiğinde hazır olan |
+|:--|:--|:--|:--|
+| 1 | E11 | Tüm tenant çalışması şemaya bağlı | `dealerships`, `dealership_id`, üç rollü model, Yetiş Merkez verisi |
+| 2 | E12 | Eski politikalar artık var olmayan rolleri referans alıyor; sistem bu adım olmadan yönetilemez | Bayi izolasyonu, aktiflik kapıları, append-only denetim erişimi |
+| 3 | E13 | Mobil `tsc` 788 hata veriyor; sözleşmeler eski rolleri taşıyor | Yeşil typecheck, yeni tipler/sabitler, kökten `npm test` |
+| 4 | E14 | Uygulamalar yeni rolleri tanımadan hiçbir ekran doğru çalışmaz | Rol kapıları, pasif hesap bloklama, hesap yaşam döngüsü |
+| 5 | E15 ∥ E17 | Web ve mobil hatları buradan itibaren paralel ilerler | E15: bayi CRUD + seçici. E17: mobil kapsam + esnaf sahipliği |
+| 6 | E16 ∥ E18 | E16 seçiciyi tüketir; E18 mobil kapsamın üstüne kurulur | E16: kapsamlı panel/rapor. E18: güvenilir ziyaret verisi |
+| 7 | E19 | İki yer tutucu ekran ancak snapshot ve kapsam hazırken doldurulabilir | Geçmiş arşivi ve denetim raporları |
+| 8 | E20 | Test edilecek işlevin tamamlanmış olması gerekir | CI kapısı ve fiziksel cihaz kabulü |
+
+**Paralel hat kuralı (Faz 2):** E15/E17 ve E16/E18 çiftleri farklı uygulamalara dokunur. `packages/shared` yalnızca E13'te değişir; sonraki epiclerde ihtiyaç doğarsa "SHARED İHTİYACI" notu düşülür ve ayrı bir mini oturumda toplu olarak eklenir. Şema değişikliği yalnızca E11, E12 ve E18'de yapılır.
+
+## Faz 1 Bağımlılık Grafiği (tarihsel)
 
 ```mermaid
 graph TD
@@ -49,7 +108,7 @@ graph TD
     E09 --> E10
 ```
 
-## Çalıştırma Sırası ve Handoff Notları
+## Faz 1 Çalıştırma Sırası ve Handoff Notları (tarihsel)
 
 | Sıra | Epic | Hat | Önkoşul | Bittiğinde sonrakine hazır olan |
 |:-----|:-----|:----|:--------|:-------------------------------|
@@ -73,16 +132,19 @@ Her alt oturum aynı E06 promptuyla çalıştırılır; agent'a hangi oturumda o
 
 ## Paralel Hat Kuralları (çakışma önleme)
 
-- `packages/shared`'a aynı anda **tek hat** dokunur. Kural: E04 sonrası tüm epic promptları "shared'ı değiştirme; eksik varsa 'SHARED İHTİYACI' notu düş" kısıtı içerir. Biriken ihtiyaçlar iki hat arasında ayrı bir mini shared oturumunda eklenir (diğer hat o sırada duraklar).
-- Migration üretimi tekil: şema değişikliği yalnızca E02'de yapılır. Web hattı şema ihtiyacı duyarsa dur, ayrı mini epic aç.
+- `packages/shared`'a aynı anda **tek hat** dokunur. Faz 2'de shared yalnızca E13'te değişir; diğer epic promptları "shared'ı değiştirme; eksik varsa 'SHARED İHTİYACI' notu düş" kısıtı içerir. Biriken ihtiyaçlar ayrı bir mini shared oturumunda eklenir (diğer hat o sırada duraklar).
+- Migration üretimi tekil: Faz 1'de yalnızca E02, Faz 2'de yalnızca E11, E12 ve E18 şema değiştirir. Başka bir epic şema ihtiyacı duyarsa dur ve ayrı mini epic aç.
 - Klasör ayrımı: mobil hattı `apps/web`'e, web hattı `apps/mobile`'a dokunamaz (promptların KISITLAR bölümünde yazılı).
 
-## Faz 2'ye Geçiş Kapısı (E09/E10 öncesi şart)
+## Faz 1 Cihaz Kapısı (E09/E10 öncesi şarttı — geçildi)
 
 - Gerçek Android cihazda 1 tam ziyaret: check-in (geofence geçti) → zorunlu foto + filigran → check-out.
 - Web canlı haritada ziyaretin anlık görünmesi; fotoğrafın signed URL ile açılması.
 - Emülatör/kamerada yanıltıcı sonuçlar olabileceğinden E06 ve E09'un kabulü mutlaka fiziksel cihazda.
-- Bu kapı geçilmeden E09'a geçme: arka plan GPS, üstüne kurulacağı ziyaret/vardiya zemini sağlam değilse boşa maliyet üretir.
+
+## Faz 2 Kabul Kapısı (E20)
+
+Çoklu bayi sürümü, E20 kapsamındaki fiziksel Android cihaz senaryosu geçilmeden kabul edilmez: bayi ve kullanıcı oluşturma, zorunlu şifre değişimi, esnaf ekleme/düzenleme, menzil dışı check-in reddi, başarılı ziyaret, web arşivinde görünürlük, vardiya konum logları, temsilci transferi ve pasife alma. Ayrıntı: [E20](E20-ci-e2e-ve-fiziksel-cihaz-kabul.md).
 
 ## Her Epic Öncesi / Sonrası Kontroller
 
@@ -95,6 +157,7 @@ Her alt oturum aynı E06 promptuyla çalıştırılır; agent'a hangi oturumda o
 - `git status` / `git diff --stat` ile değişiklik listesini gözden geçir: kapsam dışı dosyaya dokunulmuşsa geri aldır.
 - Yeni migration eklendiyse `supabase db reset` + seed ile sıfırdan kurulumu test et.
 - `.env.example` dışında dosyaya secret yazılmış mı diye tara.
+- Faz 2'de ek olarak: `npm test` ve (E12 sonrası) `supabase/tests/tenant_isolation.sql` çalıştır — bayi izolasyonu regresyonu en pahalı hatadır.
 
 ## Hata Durumunda
 

@@ -68,7 +68,7 @@ export default function LoginScreen() {
               <Text style={styles.label}>E-Posta Adresi</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ornek@saha.local"
+                placeholder="ornek@saha.com"
                 placeholderTextColor="#94a3b8"
                 keyboardType="email-address"
                 autoCapitalize="none"

@@ -6,7 +6,7 @@ import { CustomerForm } from '../../../../components/esnaflar/CustomerForm';
 
 export default function YeniEsnafPage() {
   return (
-    <RoleGuard allowedRoles={['admin', 'manager']}>
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
       <CustomerForm isEditing={false} />
     </RoleGuard>
   );

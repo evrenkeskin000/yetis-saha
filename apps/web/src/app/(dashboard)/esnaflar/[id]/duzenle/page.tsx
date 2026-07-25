@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { RoleGuard } from '../../../../../components/RoleGuard';
@@ -11,7 +11,7 @@ import {
 } from '../../../../../components/esnaflar/CustomerForm';
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 function EsnafDuzenleContent({ customerId }: { customerId: string }) {
@@ -82,10 +82,9 @@ function EsnafDuzenleContent({ customerId }: { customerId: string }) {
 }
 
 export default function EsnafDuzenlePage({ params }: PageProps) {
-  const resolvedParams = use(params);
   return (
-    <RoleGuard allowedRoles={['admin', 'manager']}>
-      <EsnafDuzenleContent customerId={resolvedParams.id} />
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
+      <EsnafDuzenleContent customerId={params.id} />
     </RoleGuard>
   );
 }

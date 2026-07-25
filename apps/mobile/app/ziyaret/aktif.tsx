@@ -84,7 +84,6 @@ export default function AktifZiyaretScreen() {
           outcome: selectedOutcome,
           notes,
           photoUri: capturedPhoto?.uri,
-          isGeofenceValid: String(completed.is_geofence_valid ?? true),
           isMockLocation: String(completed.is_mock_location ?? false),
         },
       });
@@ -114,8 +113,16 @@ export default function AktifZiyaretScreen() {
           text: 'Evet, İptal Et',
           style: 'destructive',
           onPress: async () => {
-            await cancelCurrentVisit();
-            router.replace('/(tabs)/esnaflar');
+            try {
+              await cancelCurrentVisit();
+              router.replace('/(tabs)/esnaflar');
+            } catch (err) {
+              Alert.alert(
+                'İptal Edilemedi',
+                (err as Error)?.message ||
+                  'Ziyaret iptal edilemedi, tekrar deneyin.'
+              );
+            }
           },
         },
       ]
@@ -143,10 +150,7 @@ export default function AktifZiyaretScreen() {
         </View>
 
         {/* Warning Badges */}
-        <UyariRozeti
-          isGeofenceValid={activeVisit.is_geofence_valid}
-          isMockLocation={activeVisit.is_mock_location}
-        />
+        <UyariRozeti isMockLocation={activeVisit.is_mock_location} />
 
         <View style={styles.divider} />
 

@@ -13,10 +13,10 @@ export const BRAND_COLORS = {
   accentStrong: '#EAB308',
 } as const;
 
-export const ROLES = ['admin', 'manager', 'field_rep'] as const;
+export const ROLES = ['yetis_admin', 'dealer_admin', 'field_rep'] as const;
 export const ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Yönetici',
-  manager: 'Ekip Lideri',
+  yetis_admin: 'Yetiş Yöneticisi',
+  dealer_admin: 'Bayi Yöneticisi',
   field_rep: 'Saha Temsilcisi',
 };
 
@@ -50,9 +50,9 @@ export const OUTCOME_COLORS: Record<VisitOutcome, string> = {
   other: '#64748b',
 };
 
-export const DEFAULT_GEOFENCE_RADIUS_M = 100;
-export const GEOFENCE_MIN_RADIUS_M = 25;
-export const GEOFENCE_MAX_RADIUS_M = 1000;
+export const DEFAULT_DEALERSHIP_CODE = 'YETIS-MERKEZ';
+/** Yetiş Admin bayi seçicisinin varsayılan değeri. */
+export const ALL_DEALERSHIPS = 'all' as const;
 
 export const VISIT_PHOTOS_BUCKET = 'visit-photos';
 export const PHOTO_TARGET_SIZE_KB = 200;

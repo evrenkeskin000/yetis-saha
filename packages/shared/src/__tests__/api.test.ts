@@ -6,6 +6,7 @@ import {
   getActiveVisit,
   getCustomersNearby,
   getTodayVisits,
+  getVisitHistory,
   getVisitPhotoUrl,
   uploadVisitPhoto,
 } from '../api';
@@ -16,6 +17,7 @@ function createMockSupabaseClient() {
   const gteMock = vi.fn().mockReturnThis();
   const isMock = vi.fn().mockReturnThis();
   const orderMock = vi.fn().mockReturnThis();
+  const rangeMock = vi.fn().mockReturnThis();
   const singleMock = vi.fn().mockResolvedValue({ data: null, error: null });
   const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
   const insertMock = vi.fn().mockReturnThis();
@@ -28,6 +30,7 @@ function createMockSupabaseClient() {
     gte: gteMock,
     is: isMock,
     order: orderMock,
+    range: rangeMock,
     single: singleMock,
     maybeSingle: maybeSingleMock,
     insert: insertMock,
@@ -68,6 +71,7 @@ function createMockSupabaseClient() {
       gteMock,
       isMock,
       orderMock,
+      rangeMock,
       singleMock,
       maybeSingleMock,
       insertMock,
@@ -134,7 +138,7 @@ describe('api helpers', () => {
     });
   });
 
-  it('createVisit inserts payload without check_in_at or is_geofence_valid', async () => {
+  it('createVisit requires field_rep_id and inserts payload without check_in_at', async () => {
     const supabase = createMockSupabaseClient();
     const mockInserted = { id: 'v-created', idempotency_key: 'idemp-1' };
     supabase._mocks.singleMock.mockResolvedValue({
@@ -143,6 +147,7 @@ describe('api helpers', () => {
     });
 
     const input = {
+      field_rep_id: 'a0000000-0000-0000-0000-000000000003',
       customer_id: 'e0000000-0000-0000-0000-000000000001',
       location: { latitude: 40.9903, longitude: 29.027 },
       idempotency_key: 'idemp-1',
@@ -153,9 +158,20 @@ describe('api helpers', () => {
 
     const insertedPayload = supabase._mocks.insertMock.mock.calls[0][0];
     expect(insertedPayload).not.toHaveProperty('check_in_at');
-    expect(insertedPayload).not.toHaveProperty('is_geofence_valid');
+    expect(insertedPayload.field_rep_id).toBe(input.field_rep_id);
     expect(insertedPayload.customer_id).toBe(input.customer_id);
     expect(insertedPayload.idempotency_key).toBe('idemp-1');
+  });
+
+  it('createVisit throws when field_rep_id is missing', async () => {
+    const supabase = createMockSupabaseClient();
+    await expect(
+      createVisit(supabase, {
+        field_rep_id: '',
+        customer_id: 'e0000000-0000-0000-0000-000000000001',
+        location: { latitude: 40.9903, longitude: 29.027 },
+      })
+    ).rejects.toThrow('field_rep_id zorunludur');
   });
 
   it('createVisit handles 23505 duplicate error by returning existing visit', async () => {
@@ -170,6 +186,7 @@ describe('api helpers', () => {
       .mockResolvedValueOnce({ data: existingVisit, error: null });
 
     const input = {
+      field_rep_id: 'a0000000-0000-0000-0000-000000000003',
       customer_id: 'e0000000-0000-0000-0000-000000000001',
       location: { latitude: 40.9903, longitude: 29.027 },
       idempotency_key: 'idemp-dup',
@@ -177,6 +194,23 @@ describe('api helpers', () => {
 
     const res = await createVisit(supabase, input);
     expect(res).toEqual(existingVisit);
+  });
+
+  it('getVisitHistory selects snapshot columns and pages results', async () => {
+    const supabase = createMockSupabaseClient();
+    supabase._mocks.rangeMock.mockResolvedValue({
+      data: [{ id: 'v1', customer_snapshot: { business_name: 'Bakkal' } }],
+      error: null,
+    });
+
+    const res = await getVisitHistory(supabase, 'rep1', { limit: 10, offset: 0 });
+    expect(res).toHaveLength(1);
+    expect(supabase.from).toHaveBeenCalledWith('visits');
+    expect(supabase._mocks.eqMock).toHaveBeenCalledWith('field_rep_id', 'rep1');
+    expect(supabase._mocks.selectMock).toHaveBeenCalledWith(
+      expect.stringContaining('customer_snapshot')
+    );
+    expect(supabase._mocks.rangeMock).toHaveBeenCalledWith(0, 9);
   });
 
   it('completeVisit updates outcome and location without check_out_at', async () => {

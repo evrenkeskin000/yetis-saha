@@ -5,8 +5,12 @@ import Link from 'next/link';
 import { ArrowLeft, Check, Edit2, Plus, Power, Save, Tag, X } from 'lucide-react';
 import type { Category } from '@saha/shared';
 import { createClient } from '../../lib/supabase/client';
+import { useProfile } from '../../lib/hooks/useProfile';
 
 export function CategoryManager() {
+  const { profile } = useProfile();
+  const canWrite = profile?.role === 'yetis_admin';
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -214,10 +218,19 @@ export function CategoryManager() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Kategori Yönetimi</h1>
           <p className="text-xs text-slate-500">
-            Esnaf kategorilerini ekleyin, düzenleyin veya pasife alın
+            {canWrite
+              ? 'Esnaf kategorilerini ekleyin, düzenleyin veya pasife alın'
+              : 'Kategoriler tüm bayiler için Yetiş yönetimi tarafından tanımlanır.'}
           </p>
         </div>
       </div>
+
+      {!canWrite && (
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-sm">
+          Kategoriler tüm bayiler için Yetiş yönetimi tarafından tanımlanır.
+          Bu sayfada yalnızca görüntüleme yapabilirsiniz.
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
@@ -239,6 +252,7 @@ export function CategoryManager() {
       )}
 
       {/* Inline Create Category Form */}
+      {canWrite && (
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Plus className="w-4 h-4 text-teal-600" />
@@ -297,6 +311,7 @@ export function CategoryManager() {
           </button>
         </form>
       </div>
+      )}
 
       {/* Categories Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -317,7 +332,9 @@ export function CategoryManager() {
                   <th className="py-3.5 px-4 w-16 text-center">İkon</th>
                   <th className="py-3.5 px-4">Kategori Adı</th>
                   <th className="py-3.5 px-4">Durum</th>
-                  <th className="py-3.5 px-4 text-right">İşlemler</th>
+                  {canWrite && (
+                    <th className="py-3.5 px-4 text-right">İşlemler</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
@@ -385,6 +402,7 @@ export function CategoryManager() {
                       </td>
 
                       {/* İşlemler */}
+                      {canWrite && (
                       <td className="py-3.5 px-4 text-right space-x-2">
                         {isEditingThis ? (
                           <>
@@ -436,6 +454,7 @@ export function CategoryManager() {
                           </>
                         )}
                       </td>
+                      )}
                     </tr>
                   );
                 })}

@@ -3,15 +3,20 @@
 import React from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import { formatTimeTR } from '../../lib/format';
-import type { WebCustomer, WebVisit } from '../../lib/hooks/useTodayVisits';
+import type {
+  LiveRep,
+  WebCustomer,
+  WebVisit,
+} from '../../lib/hooks/useTodayVisits';
 import { getOutcomeColor, getOutcomeLabel } from '../../lib/outcome';
 
 interface LiveMapProps {
   customers: WebCustomer[];
   visits: WebVisit[];
+  liveReps: LiveRep[];
 }
 
-export default function LiveMap({ customers, visits }: LiveMapProps) {
+export default function LiveMap({ customers, visits, liveReps }: LiveMapProps) {
   // Map customer_id -> latest visit for today
   const latestVisitMap = new Map<string, WebVisit>();
   visits.forEach((v) => {
@@ -35,7 +40,12 @@ export default function LiveMap({ customers, visits }: LiveMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {customers.map((cust) => {
+        {customers
+          .filter(
+            (cust): cust is WebCustomer & { lat: number; lng: number } =>
+              cust.lat != null && cust.lng != null
+          )
+          .map((cust) => {
           const visit = latestVisitMap.get(cust.id);
           const color = visit ? getOutcomeColor(visit.outcome) : '#64748b';
           const isVisited = Boolean(visit);
@@ -90,6 +100,34 @@ export default function LiveMap({ customers, visits }: LiveMapProps) {
             </CircleMarker>
           );
         })}
+
+        {liveReps.map((rep) => (
+          <CircleMarker
+            key={`rep-${rep.userId}`}
+            center={[rep.lastPoint.lat, rep.lastPoint.lng]}
+            radius={rep.isLive ? 10 : 7}
+            pathOptions={{
+              color: '#ffffff',
+              weight: 3,
+              fillColor: rep.isLive ? '#7c3aed' : '#a5b4fc',
+              fillOpacity: rep.isLive ? 0.95 : 0.6,
+            }}
+          >
+            <Popup>
+              <div className="p-1 space-y-1 min-w-[180px]">
+                <div className="font-bold text-sm text-slate-900">
+                  {rep.fullName}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Son konum: {formatTimeTR(rep.lastPoint.recordedAt)}
+                </div>
+                <div className="text-xs font-semibold text-violet-700">
+                  {rep.isLive ? 'Sahada (canlı)' : 'Son bilinen konum'}
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
       </MapContainer>
 
       {/* Map Legend */}
@@ -112,6 +150,10 @@ export default function LiveMap({ customers, visits }: LiveMapProps) {
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-blue-600 inline-block" />
           <span>Teklif Verildi</span>
+        </div>
+        <div className="flex items-center gap-2 pt-1 border-t border-slate-700">
+          <span className="w-3 h-3 rounded-full bg-violet-600 border-2 border-white inline-block" />
+          <span>Temsilci (canlı)</span>
         </div>
       </div>
     </div>

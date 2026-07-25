@@ -84,11 +84,35 @@ npm install
 
 - **Prod Build (Web):**
   ```bash
-  npm run build
+  npm --workspace @saha/web run build
   ```
+
+- **Testler:**
+  ```bash
+  npm --workspace @saha/shared run test
+  ```
+  > Kökten çalışan `npm test` komutu ve Turborepo `test` görevi **E13** ile eklenecektir.
 
 ## Epic Yol Haritası
 
-1. **E01 — Monorepo Altyapı Kurulumu** (Tamamlandı)
-2. **E02 — Veritabanı Şeması & Supabase Kurulumu**
-3. **E03 — Shared Paket & Veri Tipleri**
+Epic promptlarının tamamı ve çalıştırma sırası: [docs/epics/README.md](docs/epics/README.md)
+
+### Faz 1 — Tamamlandı
+E01 Monorepo Altyapısı · E02 Veritabanı + Auth + RLS · E03 Shared Paket · E04 Mobil Auth + KVKK · E05 Mobil Esnaf Haritası · E06 Mobil Ziyaret Akışı · E07 Web Canlı Harita · E08 Web Yönetim CRUD · E09 Mobil Arka Plan GPS · E10 Web KPI + Raporlar
+
+### Faz 2 — Çoklu Bayi Dönüşümü (güncel plan)
+
+| # | Epic | Hat |
+|:--|:--|:--|
+| E11 | Bayi Şeması, Rol Dönüşümü ve Veri Taşıma | DB |
+| E12 | Bayi Bazlı RLS ve Veri İzolasyonu | DB |
+| E13 | Shared Sözleşmeler ve Test Zemini | Ortak |
+| E14 | Giriş Akışı, Rol Kapıları ve Hesap Yaşam Döngüsü | Web + Mobil |
+| E15 | Yetiş Admin Bayi Yönetimi ve Bayi Seçici | Web |
+| E16 | Bayi Kapsamlı Panel ve Global Kategoriler | Web |
+| E17 | Mobil Bayi Kapsamı ve Esnaf Sahipliği | Mobil |
+| E18 | Ziyaret Bütünlüğü: Sert Geofence ve Denetim Kaydı | DB + Mobil |
+| E19 | Ziyaret Arşivi ve Denetim Raporları | Web + Mobil |
+| E20 | Otomatik Testler, CI ve Fiziksel Cihaz Kabulü | Ortak |
+
+Projenin mevcut durumu, bilinen açıklar ve bunların hangi epicte kapatılacağı: [docs/proje-denetimi-2026-07-25.md](docs/proje-denetimi-2026-07-25.md)

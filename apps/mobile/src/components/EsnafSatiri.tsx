@@ -63,7 +63,14 @@ export function EsnafSatiri({
       </View>
 
       <View style={styles.cardBody}>
-        {customer.address ? (
+        {customer.locationMissing ? (
+          <View style={styles.infoRow}>
+            <Ionicons name="warning-outline" size={14} color="#f59e0b" />
+            <Text style={[styles.infoText, { color: '#f59e0b' }]} numberOfLines={1}>
+              Konum bilgisi eksik
+            </Text>
+          </View>
+        ) : customer.address ? (
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={14} color="#94a3b8" />
             <Text style={styles.infoText} numberOfLines={1}>

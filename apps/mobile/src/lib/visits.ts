@@ -2,26 +2,26 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GeoPoint, Visit, VisitOutcome } from '@saha/shared';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
-import { haversineMeters } from './geo';
 import type { CustomerWithCategory } from './customers';
-
-export interface CheckInOptions {
-  forceOutOfRange?: boolean;
-}
 
 export interface CheckInResult {
   visit: Visit | null;
-  isGeofenceValid: boolean;
-  distanceMeters: number;
   isMockLocation: boolean;
   userLocation: GeoPoint;
   error?: string;
 }
 
+function extractPgMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const e = err as { message?: string; details?: string; hint?: string };
+    return e.message || e.details || 'Ziyaret başlatılamadı';
+  }
+  return 'Ziyaret başlatılamadı';
+}
+
 export async function performCheckIn(
   supabase: SupabaseClient,
-  customer: CustomerWithCategory,
-  options?: CheckInOptions
+  customer: CustomerWithCategory
 ): Promise<CheckInResult> {
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') {
@@ -39,35 +39,6 @@ export async function performCheckIn(
 
   const isMockLocation = Boolean(locationResult.mocked);
 
-  // Client Haversine distance
-  const distanceMeters = haversineMeters(userLocation, customer.location);
-
-  // Server PostGIS ST_DWithin RPC check
-  let serverValid = false;
-  try {
-    const { data: rpcValid } = await supabase.rpc('validate_check_in_location', {
-      p_customer_id: customer.id,
-      p_location: `SRID=4326;POINT(${userLocation.longitude} ${userLocation.latitude})`,
-    });
-    serverValid = Boolean(rpcValid);
-  } catch {
-    serverValid = distanceMeters <= 100;
-  }
-
-  const isGeofenceValid = distanceMeters <= 100 && serverValid;
-
-  // If geofence is invalid and user hasn't confirmed force check-in
-  if (!isGeofenceValid && !options?.forceOutOfRange) {
-    return {
-      visit: null,
-      isGeofenceValid: false,
-      distanceMeters,
-      isMockLocation,
-      userLocation,
-    };
-  }
-
-  // Perform insert with idempotency key
   const { data: authData } = await supabase.auth.getUser();
   if (!authData?.user) {
     throw new Error('Kullanıcı oturumu bulunamadı');
@@ -89,8 +60,14 @@ export async function performCheckIn(
     .single();
 
   if (error) {
-    // Handle idempotency duplicate insert cleanly
     if (error.code === '23505') {
+      // Tek açık ziyaret veya idempotency
+      const msg = error.message || '';
+      if (msg.includes('visits_one_open_per_rep') || msg.includes('field_rep_id')) {
+        throw new Error(
+          'Zaten açık bir ziyaretiniz var. Önce onu tamamlayın veya iptal edin.'
+        );
+      }
       const { data: existing } = await supabase
         .from('visits')
         .select('*')
@@ -99,20 +76,16 @@ export async function performCheckIn(
       if (existing) {
         return {
           visit: existing as Visit,
-          isGeofenceValid,
-          distanceMeters,
           isMockLocation,
           userLocation,
         };
       }
     }
-    throw error;
+    throw new Error(extractPgMessage(error));
   }
 
   return {
     visit: data as Visit,
-    isGeofenceValid,
-    distanceMeters,
     isMockLocation,
     userLocation,
   };
@@ -125,7 +98,7 @@ export async function performCheckOut(
   notes?: string
 ): Promise<Visit> {
   let userLocation: GeoPoint | null = null;
-  let isMockLocation = false;
+  let isMockLocation: boolean | null = null;
 
   try {
     const loc = await Location.getCurrentPositionAsync({
@@ -137,21 +110,27 @@ export async function performCheckOut(
     };
     isMockLocation = Boolean(loc.mocked);
   } catch {
-    // Location check-out fallback
+    // GPS yoksa ziyaret yine kapanır (sunucu tetikleyicisi)
   }
 
   const ewktLocation = userLocation
     ? `SRID=4326;POINT(${userLocation.longitude} ${userLocation.latitude})`
     : null;
 
+  const payload: Record<string, unknown> = {
+    outcome,
+    notes: notes || null,
+    check_out_location: ewktLocation,
+  };
+
+  // O-01: yalnızca true ise gönder; GPS yoksa alanı ezme
+  if (isMockLocation === true) {
+    payload.is_mock_location = true;
+  }
+
   const { data, error } = await supabase
     .from('visits')
-    .update({
-      outcome,
-      notes: notes || null,
-      check_out_location: ewktLocation,
-      is_mock_location: isMockLocation,
-    })
+    .update(payload)
     .eq('id', visitId)
     .select()
     .single();
@@ -161,4 +140,18 @@ export async function performCheckOut(
   }
 
   return data as Visit;
+}
+
+export async function performCancelVisit(
+  supabase: SupabaseClient,
+  visitId: string
+): Promise<void> {
+  const { error } = await supabase.rpc('cancel_visit', {
+    p_visit_id: visitId,
+  });
+  if (error) {
+    throw new Error(
+      extractPgMessage(error) || 'Ziyaret iptal edilemedi, tekrar deneyin.'
+    );
+  }
 }

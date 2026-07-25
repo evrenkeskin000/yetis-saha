@@ -19,7 +19,7 @@ export const THROTTLE_DRIVING_MIN_DIST_M = 200;
 export const THROTTLE_DRIVING_MIN_TIME_SEC = 30;
 
 export const FLUSH_BUFFER_SIZE_THRESHOLD = 20;
-export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export const FLUSH_INTERVAL_MS = 90 * 1000; // 90 seconds — canlı harita tazeliği
 export const MAX_BUFFER_SIZE = 500;
 
 export const SHIFT_NOTIFICATION_TITLE = 'Vardiya aktif';

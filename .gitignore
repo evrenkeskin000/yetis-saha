@@ -9,3 +9,9 @@ node_modules
 dist
 coverage
 *.tsbuildinfo
+
+# Supabase CLI yerel durum dosyaları (canlı proje referansı içerir)
+supabase/.temp/
+
+# Yerel çalışma notları
+proje_incelemesi.md

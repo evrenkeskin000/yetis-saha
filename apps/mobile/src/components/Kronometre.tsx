@@ -10,12 +10,17 @@ export function Kronometre({ checkInAt }: KronometreProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
   useEffect(() => {
+    // check_in_at sunucu saatiyle yazılır (DB default now()). Cihaz saati
+    // sunucudan gerideyse fark negatif çıkar ve sayaç 00:00'da kilitlenirdi.
+    // Bu yüzden başlangıç farkını bir kez hesaplayıp (negatifse 0), sayacı
+    // ekranın açık kaldığı süreye göre yerel olarak ilerletiyoruz.
     const startTime = new Date(checkInAt).getTime();
+    const mountedAt = Date.now();
+    const baseElapsedSec = Math.max(0, Math.floor((mountedAt - startTime) / 1000));
 
     const updateTimer = () => {
-      const now = new Date().getTime();
-      const diffSec = Math.max(0, Math.floor((now - startTime) / 1000));
-      setElapsedSeconds(diffSec);
+      const sinceMountSec = Math.max(0, Math.floor((Date.now() - mountedAt) / 1000));
+      setElapsedSeconds(baseElapsedSec + sinceMountSec);
     };
 
     updateTimer();
