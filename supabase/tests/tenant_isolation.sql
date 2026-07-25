@@ -40,7 +40,6 @@ end $$;
 do $$
 declare
   v_cnt int;
-  v_ok boolean;
   v_id uuid;
   v_visit_id uuid;
   v_err text;
@@ -372,17 +371,12 @@ begin
   raise notice 'OK-12: get_customers_nearby başka bayinin esnafını döndürmez';
 
   -- -----------------------------------------------------------------
-  -- 13) validate_check_in_location başka bayi müşterisi için false
+  -- 13) Geofence doğrulama RPC'si kaldırılmış olmalı
   -- -----------------------------------------------------------------
-  select public.validate_check_in_location(
-    'e0000000-0000-0000-0000-000000000001',
-    ST_SetSRID(ST_MakePoint(29.0270, 40.9903), 4326)
-  ) into v_ok;
-
-  if v_ok is distinct from false then
-    raise exception 'FAIL-13: validate_check_in_location çapraz bayi için true döndü';
+  if to_regprocedure('public.validate_check_in_location(uuid,geometry)') is not null then
+    raise exception 'FAIL-13: kaldırılan validate_check_in_location RPC halen mevcut';
   end if;
-  raise notice 'OK-13: validate_check_in_location başka bayi müşterisi için false';
+  raise notice 'OK-13: geofence doğrulama RPC''si kaldırılmış';
 
   -- -----------------------------------------------------------------
   -- 14) Storage: temsilci başka temsilcinin fotoğrafını indiremez
