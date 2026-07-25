@@ -1,17 +1,27 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { RefreshCw, Route } from 'lucide-react';
 import { MapLoader } from '../../../components/map/MapLoader';
-import { OutcomeBadge } from '../../../components/panel/OutcomeBadge';
 import { RepFilter } from '../../../components/panel/RepFilter';
 import { SummaryCards } from '../../../components/panel/SummaryCards';
+import { UnvisitedCustomersCard } from '../../../components/panel/UnvisitedCustomersCard';
 import { VisitTable } from '../../../components/panel/VisitTable';
+import { RoleGuard } from '../../../components/RoleGuard';
 import { useTodayVisits } from '../../../lib/hooks/useTodayVisits';
 
 export default function PanelPage() {
-  const { visits, customers, fieldReps, loading, error, refetch } =
-    useTodayVisits();
+  const {
+    visits,
+    customers,
+    fieldReps,
+    liveReps,
+    activeOnFieldCount,
+    loading,
+    error,
+    refetch,
+  } = useTodayVisits();
   const [selectedRepId, setSelectedRepId] = useState<string | null>(null);
 
   // Filter visits by selected field rep
@@ -20,7 +30,18 @@ export default function PanelPage() {
     return visits.filter((v) => v.field_rep_id === selectedRepId);
   }, [visits, selectedRepId]);
 
+  const filteredLiveReps = useMemo(() => {
+    if (!selectedRepId) return liveReps;
+    return liveReps.filter((r) => r.userId === selectedRepId);
+  }, [liveReps, selectedRepId]);
+
+  const visitedCustomerIds = useMemo(
+    () => new Set(visits.map((v) => v.customer_id)),
+    [visits]
+  );
+
   return (
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -57,23 +78,48 @@ export default function PanelPage() {
       )}
 
       {/* Summary Cards */}
-      <SummaryCards visits={filteredVisits} />
+      <SummaryCards
+        visits={filteredVisits}
+        activeOnFieldCount={activeOnFieldCount}
+      />
 
       {/* Live Map Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-800">Canlı Harita</h2>
-          <span className="text-xs text-slate-500">
-            Realtime Otomatik Güncelleme Aktif
-          </span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/rota"
+              className="text-xs font-semibold text-violet-700 hover:text-violet-900 inline-flex items-center gap-1"
+            >
+              <Route className="w-3.5 h-3.5" />
+              Rota Geçmişi
+            </Link>
+            <span className="text-xs text-slate-500">
+              Realtime Otomatik Güncelleme Aktif
+            </span>
+          </div>
         </div>
-        <MapLoader customers={customers} visits={filteredVisits} />
+        <MapLoader
+          customers={customers}
+          visits={filteredVisits}
+          liveReps={filteredLiveReps}
+        />
       </div>
 
-      {/* Visit Table Section */}
-      <div className="pt-2">
-        <VisitTable visits={filteredVisits} />
+      {/* Unvisited + Visit Table */}
+      <div className="pt-2 grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <div className="xl:col-span-2">
+          <UnvisitedCustomersCard
+            customers={customers}
+            visitedCustomerIds={visitedCustomerIds}
+          />
+        </div>
+        <div className="xl:col-span-3">
+          <VisitTable visits={filteredVisits} />
+        </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }

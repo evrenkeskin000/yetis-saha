@@ -2,11 +2,12 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { UserRole } from '@saha/shared';
 import { useProfile } from '../lib/hooks/useProfile';
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  allowedRoles: Array<'admin' | 'manager'>;
+  allowedRoles: UserRole[];
 }
 
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
@@ -15,7 +16,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
 
   useEffect(() => {
     if (!loading && profile) {
-      if (!allowedRoles.includes(profile.role as 'admin' | 'manager')) {
+      if (!allowedRoles.includes(profile.role)) {
         router.replace('/panel');
       }
     }
@@ -29,7 +30,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     );
   }
 
-  if (!profile || !allowedRoles.includes(profile.role as 'admin' | 'manager')) {
+  if (!profile || !allowedRoles.includes(profile.role)) {
     return null;
   }
 

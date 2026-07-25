@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_GEOFENCE_RADIUS_M,
-  GEOFENCE_MAX_RADIUS_M,
-  GEOFENCE_MIN_RADIUS_M,
+  ALL_DEALERSHIPS,
+  DEFAULT_DEALERSHIP_CODE,
   KVKK_CONSENT_VERSION,
   LOCATION_LOG_RETENTION_MONTHS,
   OUTCOME_COLORS,
@@ -16,7 +15,7 @@ import {
 
 describe('constants', () => {
   it('should define all user roles and matching labels', () => {
-    expect(ROLES).toEqual(['admin', 'manager', 'field_rep']);
+    expect(ROLES).toEqual(['yetis_admin', 'dealer_admin', 'field_rep']);
     ROLES.forEach((role) => {
       expect(ROLE_LABELS[role]).toBeDefined();
       expect(typeof ROLE_LABELS[role]).toBe('string');
@@ -32,15 +31,9 @@ describe('constants', () => {
     });
   });
 
-  it('should have valid geofence bounds', () => {
-    expect(DEFAULT_GEOFENCE_RADIUS_M).toBe(100);
-    expect(GEOFENCE_MIN_RADIUS_M).toBe(25);
-    expect(GEOFENCE_MAX_RADIUS_M).toBe(1000);
-    expect(GEOFENCE_MIN_RADIUS_M).toBeLessThan(DEFAULT_GEOFENCE_RADIUS_M);
-    expect(DEFAULT_GEOFENCE_RADIUS_M).toBeLessThan(GEOFENCE_MAX_RADIUS_M);
-  });
-
-  it('should define storage and retention constants', () => {
+  it('should define dealership, storage and retention constants', () => {
+    expect(DEFAULT_DEALERSHIP_CODE).toBe('YETIS-MERKEZ');
+    expect(ALL_DEALERSHIPS).toBe('all');
     expect(VISIT_PHOTOS_BUCKET).toBe('visit-photos');
     expect(PHOTO_TARGET_SIZE_KB).toBe(200);
     expect(LOCATION_LOG_RETENTION_MONTHS).toBe(6);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,7 +10,6 @@ import {
   Edit,
   MapPin,
   Phone,
-  Shield,
   User,
 } from 'lucide-react';
 import type { Category, Customer } from '@saha/shared';
@@ -28,13 +27,14 @@ import {
 } from '../../../../components/esnaflar/PhotoGallery';
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 function EsnafDetayContent({ customerId }: { customerId: string }) {
   const router = useRouter();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
+  const [dealershipName, setDealershipName] = useState<string | null>(null);
   const [visits, setVisits] = useState<VisitWithRep[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -70,6 +70,18 @@ function EsnafDetayContent({ customerId }: { customerId: string }) {
           location: parsedLocation || { latitude: 0, longitude: 0 },
         };
         setCustomer(custObj);
+
+        // 1b. Dealership
+        if (custObj.dealership_id) {
+          const { data: dData } = await supabase
+            .from('dealerships')
+            .select('name')
+            .eq('id', custObj.dealership_id)
+            .maybeSingle();
+          if (dData?.name) {
+            setDealershipName(dData.name);
+          }
+        }
 
         // 2. Category
         if (custObj.category_id) {
@@ -238,15 +250,17 @@ function EsnafDetayContent({ customerId }: { customerId: string }) {
           </div>
           <div className="space-y-2 text-sm text-slate-700">
             <div className="flex items-center gap-2">
+              <span className="text-slate-400 text-xs">Bayi:</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-amber-50 text-xs font-semibold text-amber-900 border border-amber-100">
+                {dealershipName || '—'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               <span className="text-slate-400 text-xs">Kategori:</span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-100 text-xs font-semibold text-slate-800">
                 {category?.icon && <span>{category.icon}</span>}
                 <span>{category?.name || 'Kategorisiz'}</span>
               </span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Shield className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>Geofence: <strong>{customer.geofence_radius_m}m</strong></span>
             </div>
             <div className="flex items-start gap-2.5">
               <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
@@ -293,10 +307,9 @@ function EsnafDetayContent({ customerId }: { customerId: string }) {
 }
 
 export default function EsnafDetayPage({ params }: PageProps) {
-  const resolvedParams = use(params);
   return (
-    <RoleGuard allowedRoles={['admin', 'manager']}>
-      <EsnafDetayContent customerId={resolvedParams.id} />
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
+      <EsnafDetayContent customerId={params.id} />
     </RoleGuard>
   );
 }

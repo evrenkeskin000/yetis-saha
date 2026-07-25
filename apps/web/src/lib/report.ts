@@ -207,12 +207,7 @@ export function calculateExceptions(
       badges.push('Kısa Ziyaret');
     }
 
-    // Rule 2: Geofence invalid
-    if (v.is_geofence_valid === false) {
-      badges.push('Geofence Dışı');
-    }
-
-    // Rule 3: Mock location
+    // Rule 2: Mock location
     if (v.is_mock_location === true) {
       badges.push('Sahte Konum');
     }

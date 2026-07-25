@@ -15,7 +15,7 @@ Mobil uygulamamızı kullanmanız esnasında aşağıdaki kişisel verileriniz i
 3. Kişisel Verilerin İşlenme Amaçları
 Kişisel verileriniz;
 - Saha operasyonlarının etkin yönetimi ve performans takibinin yapılması,
-- Müşteri ziyaretlerinin doğrulanması (geofence kontrolü) ve raporlanması,
+- Müşteri ziyaretlerinin kaydedilmesi ve raporlanması,
 - Saha temsilcilerinin iş güvenliğinin ve iş akışlarının sağlanması,
 amacıyla KVKK’nın 5. ve 6. maddelerinde belirtilen hukuki sebeplere uygun olarak işlenmektedir.
 

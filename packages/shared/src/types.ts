@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'field_rep';
+export type UserRole = 'yetis_admin' | 'dealer_admin' | 'field_rep';
 export type VisitOutcome =
   | 'agreed'
   | 'quote_given'
@@ -12,6 +12,15 @@ export type ActivityType = 'still' | 'walking' | 'driving' | 'unknown';
 export interface GeoPoint {
   latitude: number;
   longitude: number;
+}
+
+export interface Dealership {
+  id: string;
+  name: string;
+  code: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Category {
@@ -28,8 +37,10 @@ export interface User {
   full_name: string;
   phone: string | null;
   role: UserRole;
+  dealership_id: string | null;
   avatar_url: string | null;
   is_active: boolean;
+  must_change_password: boolean;
   kvkk_consent_at: string | null;
   kvkk_consent_version: string | null;
   created_at: string;
@@ -44,10 +55,17 @@ export interface Customer {
   address: string | null;
   category_id: string | null;
   location: GeoPoint;
-  geofence_radius_m: number;
   notes: string | null;
   is_active: boolean;
+  dealership_id: string;
+  created_by: string;
   created_at: string;
+}
+
+export interface VisitCustomerSnapshot {
+  business_name: string;
+  address: string | null;
+  category_id: string | null;
 }
 
 export interface Visit {
@@ -55,6 +73,8 @@ export interface Visit {
   idempotency_key: string;
   field_rep_id: string;
   customer_id: string;
+  dealership_id: string;
+  customer_snapshot: VisitCustomerSnapshot | null;
   check_in_at: string;
   check_out_at: string | null;
   check_in_location: GeoPoint;
@@ -62,8 +82,8 @@ export interface Visit {
   duration_minutes: number | null;
   outcome: VisitOutcome | null;
   notes: string | null;
-  is_geofence_valid: boolean | null;
   is_mock_location: boolean;
+  cancelled_at: string | null;
   synced_at: string;
   created_at: string;
 }
@@ -80,6 +100,7 @@ export interface VisitPhoto {
 export interface LocationLog {
   id: number;
   user_id: string;
+  dealership_id: string;
   location: GeoPoint;
   accuracy_m: number | null;
   speed_kmh: number | null;
@@ -97,11 +118,11 @@ export interface NearbyCustomer {
   phone: string | null;
   address: string | null;
   category_id: string | null;
-  geofence_radius_m: number;
   notes: string | null;
   lat: number;
   lng: number;
   distance_m: number;
+  dealership_id?: string | null;
 }
 
 export interface VisitWithCustomer
@@ -113,6 +134,7 @@ export interface VisitWithCustomer
 }
 
 export interface CreateVisitInput {
+  field_rep_id: string;
   customer_id: string;
   location: GeoPoint;
   is_mock_location?: boolean;

@@ -1,57 +1,88 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Visit } from '@saha/shared';
-import { fetchCustomers, parsePostGisLocation, type CustomerWithCategory } from './customers';
-
-const KEY_ACTIVE_VISIT = '@active_visit';
-const KEY_ACTIVE_CUSTOMER = '@active_customer';
-const KEY_ACTIVE_PHOTO = '@active_photo';
+import {
+  activeCustomerKey,
+  activePhotoKey,
+  activeVisitKey,
+} from '../constants/storageKeys';
+import {
+  fetchCustomerById,
+  parsePostGisLocation,
+  type CustomerWithCategory,
+} from './customers';
+import { supabase as defaultSupabase } from './supabase';
 
 export interface ActivePhotoState {
   uri: string;
   width: number;
   height: number;
   timestamp: string;
+  /** Filigranda kullanılan gerçek çekim GPS'i */
+  captureLocation?: { latitude: number; longitude: number } | null;
+  /** Check-out öncesi yükleme başarılıysa tekrar yüklemeyi engeller */
+  uploadedPhotoId?: string | null;
+}
+
+async function resolveUserId(
+  supabase: SupabaseClient = defaultSupabase
+): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
 }
 
 export async function saveActiveVisitState(
   visit: Visit | null,
   customer: CustomerWithCategory | null,
-  photo?: ActivePhotoState | null
+  photo?: ActivePhotoState | null,
+  userId?: string | null
 ): Promise<void> {
   try {
+    const uid = userId ?? (await resolveUserId());
+    if (!uid) return;
+
     if (visit) {
-      await AsyncStorage.setItem(KEY_ACTIVE_VISIT, JSON.stringify(visit));
+      await AsyncStorage.setItem(activeVisitKey(uid), JSON.stringify(visit));
     } else {
-      await AsyncStorage.removeItem(KEY_ACTIVE_VISIT);
+      await AsyncStorage.removeItem(activeVisitKey(uid));
     }
 
     if (customer) {
-      await AsyncStorage.setItem(KEY_ACTIVE_CUSTOMER, JSON.stringify(customer));
+      await AsyncStorage.setItem(
+        activeCustomerKey(uid),
+        JSON.stringify(customer)
+      );
     } else {
-      await AsyncStorage.removeItem(KEY_ACTIVE_CUSTOMER);
+      await AsyncStorage.removeItem(activeCustomerKey(uid));
     }
 
     if (photo) {
-      await AsyncStorage.setItem(KEY_ACTIVE_PHOTO, JSON.stringify(photo));
+      await AsyncStorage.setItem(activePhotoKey(uid), JSON.stringify(photo));
     } else if (photo === null) {
-      await AsyncStorage.removeItem(KEY_ACTIVE_PHOTO);
+      await AsyncStorage.removeItem(activePhotoKey(uid));
     }
   } catch (err) {
     console.error('Active visit save error:', err);
   }
 }
 
-export async function loadActiveVisitState(): Promise<{
+export async function loadActiveVisitState(
+  userId?: string | null
+): Promise<{
   visit: Visit | null;
   customer: CustomerWithCategory | null;
   photo: ActivePhotoState | null;
 }> {
   try {
+    const uid = userId ?? (await resolveUserId());
+    if (!uid) {
+      return { visit: null, customer: null, photo: null };
+    }
+
     const [visitStr, customerStr, photoStr] = await Promise.all([
-      AsyncStorage.getItem(KEY_ACTIVE_VISIT),
-      AsyncStorage.getItem(KEY_ACTIVE_CUSTOMER),
-      AsyncStorage.getItem(KEY_ACTIVE_PHOTO),
+      AsyncStorage.getItem(activeVisitKey(uid)),
+      AsyncStorage.getItem(activeCustomerKey(uid)),
+      AsyncStorage.getItem(activePhotoKey(uid)),
     ]);
 
     const visit = visitStr ? (JSON.parse(visitStr) as Visit) : null;
@@ -67,12 +98,16 @@ export async function loadActiveVisitState(): Promise<{
   }
 }
 
-export async function clearActiveVisitState(): Promise<void> {
+export async function clearActiveVisitState(
+  userId?: string | null
+): Promise<void> {
   try {
+    const uid = userId ?? (await resolveUserId());
+    if (!uid) return;
     await Promise.all([
-      AsyncStorage.removeItem(KEY_ACTIVE_VISIT),
-      AsyncStorage.removeItem(KEY_ACTIVE_CUSTOMER),
-      AsyncStorage.removeItem(KEY_ACTIVE_PHOTO),
+      AsyncStorage.removeItem(activeVisitKey(uid)),
+      AsyncStorage.removeItem(activeCustomerKey(uid)),
+      AsyncStorage.removeItem(activePhotoKey(uid)),
     ]);
   } catch (err) {
     console.error('Active visit clear error:', err);
@@ -89,7 +124,6 @@ export async function recoverActiveVisitFromSupabase(
     const { data: authData } = await supabase.auth.getUser();
     if (!authData?.user) return { visit: null, customer: null };
 
-    // Query active visit (check_out_at is null)
     const { data: visitData, error: visitError } = await supabase
       .from('visits')
       .select('*')
@@ -99,28 +133,43 @@ export async function recoverActiveVisitFromSupabase(
       .maybeSingle();
 
     if (visitError || !visitData) {
-      await clearActiveVisitState();
+      await clearActiveVisitState(authData.user.id);
       return { visit: null, customer: null };
     }
 
     const visit = visitData as Visit;
 
-    // Fetch customer details for active visit
-    const { data: customerData } = await supabase
-      .from('customers')
-      .select('*, category:categories(*)')
-      .eq('id', visit.customer_id)
-      .single();
+    const { data: profile } = await supabase
+      .from('users')
+      .select('dealership_id')
+      .eq('id', authData.user.id)
+      .maybeSingle();
 
     let customer: CustomerWithCategory | null = null;
-    if (customerData) {
-      customer = {
-        ...(customerData as unknown as CustomerWithCategory),
-        location: parsePostGisLocation(customerData.location),
-      };
+    if (profile?.dealership_id) {
+      customer = await fetchCustomerById(
+        supabase,
+        visit.customer_id,
+        profile.dealership_id
+      );
+    } else {
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('*, category:categories(*)')
+        .eq('id', visit.customer_id)
+        .single();
+
+      if (customerData) {
+        const location = parsePostGisLocation(customerData.location);
+        customer = {
+          ...(customerData as unknown as CustomerWithCategory),
+          location,
+          locationMissing: !location,
+        };
+      }
     }
 
-    await saveActiveVisitState(visit, customer);
+    await saveActiveVisitState(visit, customer, null, authData.user.id);
     return { visit, customer };
   } catch (err) {
     console.error('Active visit recovery error:', err);

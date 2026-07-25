@@ -6,7 +6,7 @@ import { CategoryManager } from '../../../../components/ayarlar/CategoryManager'
 
 export default function KategorilerPage() {
   return (
-    <RoleGuard allowedRoles={['admin']}>
+    <RoleGuard allowedRoles={['yetis_admin', 'dealer_admin']}>
       <CategoryManager />
     </RoleGuard>
   );

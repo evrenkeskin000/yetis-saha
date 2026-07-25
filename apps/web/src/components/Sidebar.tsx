@@ -7,6 +7,7 @@ import {
   BarChart3,
   Calendar,
   LayoutDashboard,
+  Route,
   Settings,
   Store,
 } from 'lucide-react';
@@ -18,7 +19,8 @@ interface SidebarProps {
 
 export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname();
-  const isAdmin = profile?.role === 'admin';
+  const canManageUsers =
+    profile?.role === 'yetis_admin' || profile?.role === 'dealer_admin';
 
   const menuItems = [
     {
@@ -40,6 +42,12 @@ export function Sidebar({ profile }: SidebarProps) {
       badge: null,
     },
     {
+      label: 'Rota',
+      href: '/rota',
+      icon: Route,
+      badge: null,
+    },
+    {
       label: 'Raporlar',
       href: '/raporlar',
       icon: BarChart3,
@@ -47,7 +55,7 @@ export function Sidebar({ profile }: SidebarProps) {
     },
   ];
 
-  if (isAdmin) {
+  if (canManageUsers) {
     menuItems.push({
       label: 'Ayarlar',
       href: '/ayarlar',

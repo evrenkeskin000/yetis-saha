@@ -44,7 +44,6 @@ export default function ZiyaretOzetScreen() {
     outcome?: string;
     notes?: string;
     photoUri?: string;
-    isGeofenceValid?: string;
     isMockLocation?: string;
   }>();
 
@@ -67,7 +66,6 @@ export default function ZiyaretOzetScreen() {
   const outcomeText = OUTCOME_LABELS[outcomeKey] || outcomeKey;
   const outcomeColor = OUTCOME_COLORS[outcomeKey] || '#64748b';
 
-  const isGeofenceValid = params.isGeofenceValid === 'true';
   const isMockLocation = params.isMockLocation === 'true';
 
   return (
@@ -95,10 +93,7 @@ export default function ZiyaretOzetScreen() {
         </View>
 
         {/* Warning badges */}
-        <UyariRozeti
-          isGeofenceValid={isGeofenceValid}
-          isMockLocation={isMockLocation}
-        />
+        <UyariRozeti isMockLocation={isMockLocation} />
 
         <View style={styles.divider} />
 

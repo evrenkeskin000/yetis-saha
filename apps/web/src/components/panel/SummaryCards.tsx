@@ -6,14 +6,12 @@ import type { WebVisit } from '../../lib/hooks/useTodayVisits';
 
 interface SummaryCardsProps {
   visits: WebVisit[];
+  /** Açık vardiyası veya açık ziyareti olan temsilci sayısı */
+  activeOnFieldCount: number;
 }
 
-export function SummaryCards({ visits }: SummaryCardsProps) {
+export function SummaryCards({ visits, activeOnFieldCount }: SummaryCardsProps) {
   const totalVisits = visits.length;
-
-  // Active reps: unique field_rep_ids in today's visits
-  const activeRepsSet = new Set(visits.map((v) => v.field_rep_id));
-  const activeRepCount = activeRepsSet.size;
 
   const completedVisits = visits.filter((v) => v.check_out_at !== null).length;
   const inProgressVisits = visits.filter((v) => v.check_out_at === null).length;
@@ -39,7 +37,12 @@ export function SummaryCards({ visits }: SummaryCardsProps) {
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
             Sahadaki Temsilciler
           </div>
-          <div className="text-3xl font-black text-slate-900">{activeRepCount}</div>
+          <div className="text-3xl font-black text-slate-900">
+            {activeOnFieldCount}
+          </div>
+          <div className="text-[11px] text-slate-400 mt-1">
+            Açık vardiya / açık ziyaret
+          </div>
         </div>
         <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
           <Users className="w-6 h-6" />

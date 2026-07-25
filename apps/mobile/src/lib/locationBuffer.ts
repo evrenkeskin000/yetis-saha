@@ -1,10 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Battery from 'expo-battery';
 import type { ActivityType } from '@saha/shared';
-import {
-  LOCATION_BUFFER_KEY,
-  MAX_BUFFER_SIZE,
-} from '../constants/shift';
+import { MAX_BUFFER_SIZE } from '../constants/shift';
+import { locationBufferKey } from '../constants/storageKeys';
 import { supabase } from './supabase';
 
 export interface BufferedLocationItem {
@@ -18,9 +16,24 @@ export interface BufferedLocationItem {
   recorded_at: string;
 }
 
+async function resolveUserId(): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+async function bufferKeyForCurrentUser(): Promise<string | null> {
+  const userId = await resolveUserId();
+  if (!userId) return null;
+  return locationBufferKey(userId);
+}
+
 export async function getBufferedLocations(): Promise<BufferedLocationItem[]> {
   try {
-    const json = await AsyncStorage.getItem(LOCATION_BUFFER_KEY);
+    const key = await bufferKeyForCurrentUser();
+    if (!key) return [];
+    const json = await AsyncStorage.getItem(key);
     if (!json) return [];
     return JSON.parse(json) as BufferedLocationItem[];
   } catch (err) {
@@ -33,6 +46,12 @@ export async function addLocationToBuffer(
   item: Omit<BufferedLocationItem, 'id'>
 ): Promise<number> {
   try {
+    const key = await bufferKeyForCurrentUser();
+    if (!key) {
+      console.warn('[Buffer] Oturum yok, konum tampona yazılamadı.');
+      return 0;
+    }
+
     const currentBuffer = await getBufferedLocations();
     const newItem: BufferedLocationItem = {
       ...item,
@@ -41,14 +60,15 @@ export async function addLocationToBuffer(
 
     let updated = [...currentBuffer, newItem];
 
-    // Trim oldest if exceeding MAX_BUFFER_SIZE
     if (updated.length > MAX_BUFFER_SIZE) {
       const overflow = updated.length - MAX_BUFFER_SIZE;
       updated = updated.slice(overflow);
-      console.warn(`[Buffer] Maksimum sınır (${MAX_BUFFER_SIZE}) aşıldı, ${overflow} eski kayıt düşürüldü.`);
+      console.warn(
+        `[Buffer] Maksimum sınır (${MAX_BUFFER_SIZE}) aşıldı, ${overflow} eski kayıt düşürüldü.`
+      );
     }
 
-    await AsyncStorage.setItem(LOCATION_BUFFER_KEY, JSON.stringify(updated));
+    await AsyncStorage.setItem(key, JSON.stringify(updated));
     return updated.length;
   } catch (err) {
     console.error('[Buffer] addLocationToBuffer hatası:', err);
@@ -72,7 +92,17 @@ export async function flushLocationBuffer(): Promise<number> {
       return 0;
     }
 
-    // Get current battery level
+    const { data: profile } = await supabase
+      .from('users')
+      .select('dealership_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!profile?.dealership_id) {
+      console.warn('[Buffer] dealership_id bulunamadı, flush ertelendi.');
+      return 0;
+    }
+
     let batteryPct: number | null = null;
     try {
       const level = await Battery.getBatteryLevelAsync();
@@ -85,14 +115,22 @@ export async function flushLocationBuffer(): Promise<number> {
 
     const rowsToInsert = buffer.map((item) => ({
       user_id: user.id,
+      dealership_id: profile.dealership_id,
       location: `SRID=4326;POINT(${item.longitude} ${item.latitude})`,
-      accuracy_m: item.accuracy_m !== null && item.accuracy_m !== undefined ? Math.round(item.accuracy_m * 10) / 10 : null,
-      speed_kmh: item.speed_kmh !== null && item.speed_kmh !== undefined ? Math.round(item.speed_kmh * 10) / 10 : null,
+      accuracy_m:
+        item.accuracy_m !== null && item.accuracy_m !== undefined
+          ? Math.round(item.accuracy_m * 10) / 10
+          : null,
+      speed_kmh:
+        item.speed_kmh !== null && item.speed_kmh !== undefined
+          ? Math.round(item.speed_kmh * 10) / 10
+          : null,
       battery_level: batteryPct,
       is_mock: item.is_mock,
       activity_type: item.activity_type,
       recorded_at: item.recorded_at,
-      synced_at: new Date().toISOString(),
+      // synced_at gönderilmiyor: DB'nin `default now()` değeri (sunucu saati)
+      // kullanılıyor. Böylece canlı harita cihaz saatinin kaymasından etkilenmez.
     }));
 
     const { error } = await supabase.from('location_logs').insert(rowsToInsert);
@@ -102,17 +140,16 @@ export async function flushLocationBuffer(): Promise<number> {
       return 0;
     }
 
-    // Successfully inserted -> remove these items from AsyncStorage
+    const key = locationBufferKey(user.id);
     const latestBuffer = await getBufferedLocations();
     const insertedIds = new Set(buffer.map((b) => b.id));
     const remainingBuffer = latestBuffer.filter((b) => !insertedIds.has(b.id));
 
-    await AsyncStorage.setItem(
-      LOCATION_BUFFER_KEY,
-      JSON.stringify(remainingBuffer)
-    );
+    await AsyncStorage.setItem(key, JSON.stringify(remainingBuffer));
 
-    console.log(`[Buffer] ${rowsToInsert.length} kayıt başarıyla location_logs tablosuna gönderildi.`);
+    console.log(
+      `[Buffer] ${rowsToInsert.length} kayıt başarıyla location_logs tablosuna gönderildi.`
+    );
     return rowsToInsert.length;
   } catch (err) {
     console.error('[Buffer] flushLocationBuffer hatası:', err);

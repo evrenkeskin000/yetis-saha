@@ -1,5 +1,81 @@
 import { z } from 'zod';
-import { OUTCOMES } from './constants';
+import { OUTCOMES, ROLES } from './constants';
+
+export const passwordSchema = z
+  .string()
+  .min(8, 'Şifre en az 8 karakter olmalıdır')
+  .refine((val) => /[A-Za-zÀ-ÿ]/.test(val), {
+    message: 'Şifre en az bir harf içermelidir',
+  })
+  .refine((val) => /\d/.test(val), {
+    message: 'Şifre en az bir rakam içermelidir',
+  });
+
+export const createUserSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .email('Geçerli bir e-posta adresi girin'),
+    full_name: z
+      .string()
+      .trim()
+      .min(2, 'Ad Soyad en az 2 karakter olmalıdır'),
+    role: z.enum(ROLES, {
+      errorMap: () => ({ message: 'Geçerli bir kullanıcı rolü seçin' }),
+    }),
+    password: passwordSchema,
+    dealership_id: z
+      .string()
+      .uuid('Geçerli bir bayi seçin')
+      .nullable()
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === 'yetis_admin') {
+      if (data.dealership_id != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['dealership_id'],
+          message: 'Yetiş yöneticisi bir bayiye bağlanamaz',
+        });
+      }
+      return;
+    }
+    if (!data.dealership_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['dealership_id'],
+        message: 'Bayi yöneticisi ve saha temsilcisi için bayi zorunludur',
+      });
+    }
+  });
+
+export const resetPasswordSchema = z.object({
+  user_id: z.string().uuid('Geçerli bir kullanıcı kimliği gerekli'),
+  password: passwordSchema,
+});
+
+export const changePasswordSchema = z.object({
+  password: passwordSchema,
+});
+
+export const dealershipFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Bayi adı en az 2 karakter olmalıdır'),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, {
+      message: 'Bayi kodu yalnızca büyük harf, rakam ve tire içerebilir',
+    })
+    .optional()
+    .or(z.literal('')),
+  is_active: z.boolean().default(true),
+});
 
 export const trPhoneRegex = /^(?:\+90|0)?5\d{9}$/;
 
@@ -40,11 +116,6 @@ export const customerFormSchema = z.object({
   address: z.string().trim().optional().or(z.literal('')),
   category_id: z.string().uuid('Geçerli bir kategori seçin'),
   location: geoPointSchema,
-  geofence_radius_m: z
-    .number()
-    .min(25, 'Geofence yarıçapı en az 25m olmalıdır')
-    .max(1000, 'Geofence yarıçapı en fazla 1000m olmalıdır')
-    .default(100),
   notes: z
     .string()
     .trim()
@@ -83,3 +154,7 @@ export const visitCompletionSchema = z.object({
 export type CustomerFormValues = z.infer<typeof customerFormSchema>;
 export type CheckInFormValues = z.infer<typeof checkInSchema>;
 export type VisitCompletionFormValues = z.infer<typeof visitCompletionSchema>;
+export type CreateUserValues = z.infer<typeof createUserSchema>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
+export type DealershipFormValues = z.infer<typeof dealershipFormSchema>;

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { Category } from '@saha/shared';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,11 +14,18 @@ import {
 } from 'react-native';
 import { ZodError } from 'zod';
 import { createCustomer, fetchCategories } from '../../src/lib/customers';
+import { useAuth } from '../../src/lib/auth';
+import { ensureFreshSession, isJwtExpiredError } from '../../src/lib/session';
 import { supabase } from '../../src/lib/supabase';
 
 export default function YeniEsnafScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ lat?: string; lng?: string }>();
+  const { dealershipId, user } = useAuth();
+  const params = useLocalSearchParams<{
+    lat?: string;
+    lng?: string;
+    address?: string;
+  }>();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState<boolean>(true);
@@ -29,11 +36,12 @@ export default function YeniEsnafScreen() {
   const [phone, setPhone] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [geofenceRadius, setGeofenceRadius] = useState<string>('100');
   const [notes, setNotes] = useState<string>('');
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(
     null
   );
+  /** Haritadan dönen çözümlenmiş adres — buton üzerinde gösterilir */
+  const [pickedAddress, setPickedAddress] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,13 +49,25 @@ export default function YeniEsnafScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const cats = await fetchCategories(supabase);
+        await ensureFreshSession(supabase);
+        let cats = await fetchCategories(supabase).catch(async (err) => {
+          if (!isJwtExpiredError(err)) throw err;
+          // Token arada dolmuş olabilir — bir kez yenileyip tekrar dene
+          await ensureFreshSession(supabase);
+          return fetchCategories(supabase);
+        });
         setCategories(cats);
         if (cats.length > 0) {
           setCategoryId(cats[0].id);
         }
       } catch (err) {
-        console.error('Kategori yükleme hatası:', err);
+        console.warn('Kategori yükleme hatası:', err);
+        Alert.alert(
+          'Kategoriler Yüklenemedi',
+          isJwtExpiredError(err)
+            ? 'Oturum süreniz dolmuş. Lütfen çıkış yapıp tekrar giriş yapın.'
+            : 'Kategoriler alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+        );
       } finally {
         setLoadingCategories(false);
       }
@@ -64,7 +84,12 @@ export default function YeniEsnafScreen() {
         setErrors((prev) => ({ ...prev, location: '' }));
       }
     }
-  }, [params.lat, params.lng]);
+    if (params.address) {
+      setPickedAddress(params.address);
+      // Kullanıcının yazdığı adresi ezmemek için yalnızca boşsa doldur
+      setAddress((prev) => (prev.trim().length === 0 ? params.address! : prev));
+    }
+  }, [params.lat, params.lng, params.address]);
 
   const handleSubmit = async () => {
     setErrors({});
@@ -83,13 +108,22 @@ export default function YeniEsnafScreen() {
       address: address || undefined,
       category_id: categoryId,
       location,
-      geofence_radius_m: parseInt(geofenceRadius, 10) || 100,
       notes: notes || undefined,
     };
 
     try {
       setSubmitting(true);
-      await createCustomer(supabase, payload);
+      if (!dealershipId || !user?.id) {
+        Alert.alert(
+          'Hata',
+          'Bayi veya oturum bilgisi eksik. Lütfen tekrar giriş yapın.'
+        );
+        return;
+      }
+      await createCustomer(supabase, payload, {
+        dealershipId,
+        createdBy: user.id,
+      });
       Alert.alert('Başarılı', 'Yeni esnaf başarıyla eklendi.', [
         {
           text: 'Tamam',
@@ -116,16 +150,21 @@ export default function YeniEsnafScreen() {
   const handleOpenMapPicker = () => {
     router.push({
       pathname: '/esnaf/konum-sec',
-      params: location
-        ? {
-            initialLat: location.latitude.toFixed(6),
-            initialLng: location.longitude.toFixed(6),
-          }
-        : undefined,
+      params: {
+        ...(location
+          ? {
+              initialLat: location.latitude.toFixed(6),
+              initialLng: location.longitude.toFixed(6),
+            }
+          : {}),
+        returnTo: '/esnaf/yeni',
+      },
     });
   };
 
   return (
+    <>
+      <Stack.Screen options={{ title: 'Yeni Esnaf Ekle' }} />
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -260,31 +299,17 @@ export default function YeniEsnafScreen() {
                 styles.locationPickerBtnText,
                 location ? styles.locationPickerBtnTextActive : null,
               ]}
+              numberOfLines={2}
             >
               {location
-                ? `Seçildi: ${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+                ? pickedAddress ??
+                  `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
                 : 'Haritadan Konum Seç'}
             </Text>
             <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
           </TouchableOpacity>
           {Boolean(errors.location) && (
             <Text style={styles.errorText}>{errors.location}</Text>
-          )}
-        </View>
-
-        {/* Geofence Radius */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Geofence Yarıçapı (metre)</Text>
-          <TextInput
-            style={[styles.input, errors.geofence_radius_m ? styles.inputError : null]}
-            placeholder="100"
-            placeholderTextColor="#64748b"
-            keyboardType="number-pad"
-            value={geofenceRadius}
-            onChangeText={setGeofenceRadius}
-          />
-          {Boolean(errors.geofence_radius_m) && (
-            <Text style={styles.errorText}>{errors.geofence_radius_m}</Text>
           )}
         </View>
 
@@ -323,6 +348,7 @@ export default function YeniEsnafScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </>
   );
 }
 

@@ -17,10 +17,12 @@ import {
 import { EsnafSatiri } from '../../src/components/EsnafSatiri';
 import { HaritaGorunumu, type PinItem } from '../../src/components/HaritaGorunumu';
 import { KategoriFiltre } from '../../src/components/KategoriFiltre';
+import { useAuth } from '../../src/lib/auth';
 import {
   fetchCategories,
   fetchCustomers,
   fetchLastVisitsMap,
+  fetchNearbyCustomers,
   filterCustomersBySearch,
   sortCustomersByDistance,
   sortCustomersByLastVisit,
@@ -34,113 +36,163 @@ type SortMode = 'last_visit' | 'alphabetical' | 'nearby';
 type ViewMode = 'list' | 'map';
 
 const FlatListComponent = FlatList as any;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function EsnaflarTab() {
   const router = useRouter();
+  const { dealershipId, dealershipName, dealershipEpoch } = useAuth();
+
   const [customers, setCustomers] = useState<CustomerWithCategory[]>([]);
+  const [nearbyCustomers, setNearbyCustomers] = useState<
+    CustomerWithCategory[] | null
+  >(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [lastVisitsMap, setLastVisitsMap] = useState<Map<string, string>>(new Map());
+  const [lastVisitsMap, setLastVisitsMap] = useState<Map<string, string>>(
+    new Map()
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const [searchText, setSearchText] = useState<string>('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null
+  );
   const [sortMode, setSortMode] = useState<SortMode>('last_visit');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const [userLocation, setUserLocation] = useState<GeoPoint | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchText), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
   const loadData = useCallback(async () => {
+    if (!dealershipId) {
+      setCustomers([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
-      const [fetchedCustomers, fetchedCategories, fetchedVisits] = await Promise.all([
-        fetchCustomers(supabase),
-        fetchCategories(supabase),
-        fetchLastVisitsMap(supabase),
-      ]);
+      const [fetchedCustomers, fetchedCategories, fetchedVisits] =
+        await Promise.all([
+          fetchCustomers(supabase, dealershipId),
+          fetchCategories(supabase),
+          fetchLastVisitsMap(supabase, dealershipId),
+        ]);
       setCustomers(fetchedCustomers);
       setCategories(fetchedCategories);
       setLastVisitsMap(fetchedVisits);
+      setNearbyCustomers(null);
     } catch (err) {
       console.error('Veri yükleme hatası:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [dealershipId]);
 
   useEffect(() => {
+    setLoading(true);
     loadData();
-  }, [loadData]);
+  }, [loadData, dealershipEpoch]);
 
-  // Request location when 'nearby' sort is selected
   useEffect(() => {
-    if (sortMode === 'nearby' && !userLocation) {
-      (async () => {
-        setLocationError(null);
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationError('Konum izni verilmedi. Mesafeye göre sıralama yapılamıyor.');
-          setSortMode('last_visit');
-          return;
-        }
+    if (sortMode !== 'nearby') return;
 
-        try {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          setUserLocation({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-          });
-        } catch {
-          setLocationError('Mevcut konum alınamadı.');
-          setSortMode('last_visit');
-        }
-      })();
-    }
-  }, [sortMode, userLocation]);
+    (async () => {
+      setLocationError(null);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationError(
+          'Konum izni verilmedi. Mesafeye göre sıralama yapılamıyor.'
+        );
+        setSortMode('last_visit');
+        return;
+      }
+
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const point = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        setUserLocation(point);
+
+        const nearby = await fetchNearbyCustomers(
+          supabase,
+          point.latitude,
+          point.longitude,
+          5000
+        );
+        // Kategori bilgisini mevcut listeden eşle
+        const catById = new Map(customers.map((c) => [c.id, c.category]));
+        setNearbyCustomers(
+          nearby.map((n) => ({
+            ...n,
+            category: catById.get(n.id) ?? n.category,
+          }))
+        );
+      } catch (err) {
+        console.error('Yakındaki esnaf hatası:', err);
+        setLocationError('Yakındaki esnaflar alınamadı.');
+        setSortMode('last_visit');
+      }
+    })();
+  }, [sortMode, customers]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  // Filter and Sort Customers
-  const processedCustomers = useMemo(() => {
-    let result = [...customers];
+  const sourceList =
+    sortMode === 'nearby' && nearbyCustomers ? nearbyCustomers : customers;
 
-    // 1. Category Filter
+  const processedCustomers = useMemo(() => {
+    let result = [...sourceList];
+
     if (selectedCategoryId) {
       result = result.filter((c) => c.category_id === selectedCategoryId);
     }
 
-    // 2. Search Filter
-    result = filterCustomersBySearch(result, searchText);
+    result = filterCustomersBySearch(result, debouncedSearch);
 
-    // 3. Sort
     if (sortMode === 'nearby' && userLocation) {
       result = sortCustomersByDistance(result, userLocation);
     } else if (sortMode === 'alphabetical') {
       result = sortCustomersByName(result);
-    } else {
-      // Default: last_visit
+    } else if (sortMode !== 'nearby') {
       result = sortCustomersByLastVisit(result, lastVisitsMap);
     }
 
     return result;
-  }, [customers, selectedCategoryId, searchText, sortMode, userLocation, lastVisitsMap]);
+  }, [
+    sourceList,
+    selectedCategoryId,
+    debouncedSearch,
+    sortMode,
+    userLocation,
+    lastVisitsMap,
+  ]);
 
-  // Map Pins construction
   const pins: PinItem[] = useMemo(() => {
-    return processedCustomers.map((c) => ({
-      id: c.id,
-      title: c.business_name,
-      subtitle: c.address || c.phone,
-      categoryName: c.category?.name,
-      coordinate: [c.location.longitude, c.location.latitude],
-      rawItem: c,
-    }));
+    return processedCustomers
+      .filter((c) => c.location && !c.locationMissing)
+      .map((c) => ({
+        id: c.id,
+        title: c.business_name,
+        subtitle: c.address || c.phone,
+        categoryName: c.category?.name,
+        coordinate: [c.location!.longitude, c.location!.latitude],
+        rawItem: c,
+      }));
   }, [processedCustomers]);
 
   const renderCustomerItem: ListRenderItem<CustomerWithCategory> = useCallback(
@@ -149,7 +201,9 @@ export default function EsnaflarTab() {
         customer={item}
         lastVisitAt={lastVisitsMap.get(item.id)}
         distanceMeters={
-          userLocation ? haversineMeters(userLocation, item.location) : null
+          userLocation && item.location
+            ? haversineMeters(userLocation, item.location)
+            : null
         }
         onPress={(c) => router.push(`/esnaf/${c.id}`)}
       />
@@ -159,7 +213,13 @@ export default function EsnaflarTab() {
 
   return (
     <View style={styles.container}>
-      {/* Search & Control Header */}
+      {dealershipName ? (
+        <View style={styles.dealershipBanner}>
+          <Ionicons name="business-outline" size={14} color="#38bdf8" />
+          <Text style={styles.dealershipBannerText}>{dealershipName}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.headerControls}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="#94a3b8" />
@@ -177,7 +237,6 @@ export default function EsnaflarTab() {
           )}
         </View>
 
-        {/* View Mode & Sort Mode Row */}
         <View style={styles.controlRow}>
           <View style={styles.sortChips}>
             <TouchableOpacity
@@ -232,7 +291,6 @@ export default function EsnaflarTab() {
             </TouchableOpacity>
           </View>
 
-          {/* Toggle View Mode Button */}
           <TouchableOpacity
             style={styles.viewToggleBtn}
             onPress={() =>
@@ -251,14 +309,12 @@ export default function EsnaflarTab() {
         </View>
       </View>
 
-      {/* Category Chips */}
       <KategoriFiltre
         categories={categories}
         selectedCategoryId={selectedCategoryId}
         onSelectCategory={setSelectedCategoryId}
       />
 
-      {/* Location Error Warning */}
       {locationError && (
         <View style={styles.warningBox}>
           <Ionicons name="warning-outline" size={16} color="#f59e0b" />
@@ -266,7 +322,6 @@ export default function EsnaflarTab() {
         </View>
       )}
 
-      {/* Main Content: List or Map */}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -294,7 +349,9 @@ export default function EsnaflarTab() {
               <Ionicons name="storefront-outline" size={48} color="#64748b" />
               <Text style={styles.emptyTitle}>Esnaf Bulunamadı</Text>
               <Text style={styles.emptySubtitle}>
-                Arama kriterlerinize uyan esnaf bulunmuyor veya henüz esnaf eklenmedi.
+                {debouncedSearch.trim()
+                  ? 'Arama kriterlerinize uyan esnaf bulunmuyor.'
+                  : 'Bayinize ait esnaf bulunamadı.'}
               </Text>
             </View>
           }
@@ -306,7 +363,10 @@ export default function EsnaflarTab() {
           initialRegion={
             userLocation
               ? {
-                  centerCoordinate: [userLocation.longitude, userLocation.latitude],
+                  centerCoordinate: [
+                    userLocation.longitude,
+                    userLocation.latitude,
+                  ],
                   zoomLevel: 12,
                 }
               : undefined
@@ -315,7 +375,6 @@ export default function EsnaflarTab() {
         />
       )}
 
-      {/* FAB - Add New Customer */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/esnaf/yeni')}
@@ -331,6 +390,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
+  },
+  dealershipBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  dealershipBannerText: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '600',
   },
   headerControls: {
     paddingHorizontal: 16,

@@ -9,12 +9,20 @@ import { CsvButton } from './CsvButton';
 
 interface ExceptionTableProps {
   data: ExceptionRow[];
+  filenameSuffix?: string;
 }
 
-export function ExceptionTable({ data }: ExceptionTableProps) {
+export function ExceptionTable({
+  data,
+  filenameSuffix,
+}: {
+  data: ExceptionRow[];
+  filenameSuffix?: string;
+}) {
   const handleCsvExport = () => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const filename = `rapor_istisnalar_${todayStr}.csv`;
+    const suffix = filenameSuffix ? `_${filenameSuffix}` : '';
+    const filename = `rapor_istisnalar${suffix}_${todayStr}.csv`;
     const headers = [
       'Temsilci Adı',
       'Esnaf Adı',
@@ -53,7 +61,8 @@ export function ExceptionTable({ data }: ExceptionTableProps) {
             İstisnai durum bulunmuyor
           </p>
           <p className="text-emerald-700 text-xs">
-            Seçilen tarih aralığında kısa ziyaret, geofence ihlali veya sahte konum kaydı tespit edilmedi.
+            Seçilen tarih aralığında kısa ziyaret veya sahte konum tespit
+            edilmedi.
           </p>
         </div>
       ) : (

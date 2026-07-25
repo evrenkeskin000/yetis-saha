@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Pressable,
   SafeAreaView,
@@ -19,9 +20,10 @@ import {
 } from '../../src/constants/shift';
 import { useAuth } from '../../src/lib/auth';
 import { useShift } from '../../src/lib/ShiftContext';
+import { ShiftPermissionError } from '../../src/lib/shift';
 
 export default function ProfileTab() {
-  const { userName, userEmail, userRole, signOut } = useAuth();
+  const { userName, userEmail, userRole, dealershipName, signOut } = useAuth();
   const {
     isShiftActive,
     shiftStartTime,
@@ -73,8 +75,8 @@ export default function ProfileTab() {
                     'true'
                   );
                   await startShiftAction();
-                } catch (err: any) {
-                  Alert.alert('Vardiya Başlatılamadı', err.message || `${err}`);
+                } catch (err: unknown) {
+                  showShiftStartError(err);
                 } finally {
                   setActionLoading(false);
                 }
@@ -86,9 +88,30 @@ export default function ProfileTab() {
         await startShiftAction();
         setActionLoading(false);
       }
-    } catch (err: any) {
-      Alert.alert('Vardiya Başlatılamadı', err.message || `${err}`);
+    } catch (err: unknown) {
+      showShiftStartError(err);
       setActionLoading(false);
+    }
+  }
+
+  function showShiftStartError(err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Vardiya başlatılamadı.';
+    const openSettings =
+      err instanceof ShiftPermissionError ? err.openSettings : true;
+
+    if (openSettings) {
+      Alert.alert('Vardiya Başlatılamadı', message, [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Ayarlara Git',
+          onPress: () => {
+            void Linking.openSettings();
+          },
+        },
+      ]);
+    } else {
+      Alert.alert('Vardiya Başlatılamadı', message);
     }
   }
 
@@ -149,6 +172,9 @@ export default function ProfileTab() {
 
           <Text style={styles.name}>{userName ?? 'Saha Temsilcisi'}</Text>
           <Text style={styles.email}>{userEmail ?? 'ornek@saha.local'}</Text>
+          {dealershipName ? (
+            <Text style={styles.dealership}>{dealershipName}</Text>
+          ) : null}
 
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{getRoleLabel(userRole)}</Text>
@@ -339,12 +365,18 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#94a3b8',
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  dealership: {
+    fontSize: 13,
+    color: '#cbd5e1',
+    marginBottom: 8,
   },
   roleBadge: {
     backgroundColor: '#0369a1',
     paddingHorizontal: 12,
     paddingVertical: 4,
+    marginTop: 8,
     borderRadius: 12,
   },
   roleText: {

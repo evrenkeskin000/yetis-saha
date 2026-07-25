@@ -12,7 +12,9 @@ export const config = {
     '/panel/:path*',
     '/esnaflar/:path*',
     '/ziyaretler/:path*',
+    '/rota/:path*',
     '/raporlar/:path*',
     '/ayarlar/:path*',
+    '/sifre-degistir/:path*',
   ],
 };

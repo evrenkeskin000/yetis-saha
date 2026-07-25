@@ -12,6 +12,10 @@ import type {
 } from './types';
 import { checkInSchema, visitCompletionSchema } from './validation';
 
+const VISIT_SELECT_COLUMNS =
+  'id, idempotency_key, field_rep_id, customer_id, dealership_id, customer_snapshot, check_in_at, check_out_at, cancelled_at, duration_minutes, outcome, notes, is_mock_location, synced_at, created_at';
+// SHARED İHTİYACI (E19): cancelled_at select'e eklendi — iptal durumu rozeti için.
+
 export async function getTodayVisits(
   supabase: SupabaseClient,
   fieldRepId: string
@@ -20,7 +24,7 @@ export async function getTodayVisits(
   const { data, error } = await supabase
     .from('visits')
     .select(
-      'id, idempotency_key, field_rep_id, customer_id, check_in_at, check_out_at, duration_minutes, outcome, notes, is_geofence_valid, is_mock_location, synced_at, created_at, customer:customers(id, business_name, address, category_id)'
+      `${VISIT_SELECT_COLUMNS}, customer:customers(id, business_name, address, category_id)`
     )
     .eq('field_rep_id', fieldRepId)
     .gte('check_in_at', todayStart)
@@ -70,10 +74,42 @@ export async function getCustomersNearby(
   return (data ?? []) as NearbyCustomer[];
 }
 
+export interface VisitHistoryOptions {
+  limit?: number;
+  offset?: number;
+}
+
+/** Temsilcinin kendi geçmişi; snapshot alanlarını da seçer (E19). */
+export async function getVisitHistory(
+  supabase: SupabaseClient,
+  fieldRepId: string,
+  options: VisitHistoryOptions = {}
+): Promise<Visit[]> {
+  const limit = options.limit ?? 20;
+  const offset = options.offset ?? 0;
+
+  const { data, error } = await supabase
+    .from('visits')
+    .select(VISIT_SELECT_COLUMNS)
+    .eq('field_rep_id', fieldRepId)
+    .order('check_in_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as Visit[];
+}
+
 export async function createVisit(
   supabase: SupabaseClient,
   input: CreateVisitInput
 ): Promise<Visit> {
+  if (!input.field_rep_id) {
+    throw new Error('field_rep_id zorunludur');
+  }
+
   const validated = checkInSchema.parse({
     customer_id: input.customer_id,
     location: input.location,
@@ -87,6 +123,7 @@ export async function createVisit(
   const { data, error } = await supabase
     .from('visits')
     .insert({
+      field_rep_id: input.field_rep_id,
       customer_id: validated.customer_id,
       check_in_location: ewktLocation,
       is_mock_location: validated.is_mock_location,
