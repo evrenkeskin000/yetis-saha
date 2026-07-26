@@ -1,0 +1,15 @@
+apps/mobile/android
+apps/mobile/ios
+apps/mobile/dist
+apps/mobile/node_modules
+apps/web/.next
+apps/web/node_modules
+**/*.tsbuildinfo
+docs
+scripts
+supabase/tests
+.git
+**/coverage
+**/.turbo
+**/.expo
+node_modules
